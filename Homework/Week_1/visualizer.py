@@ -67,7 +67,7 @@ def visualize(x_list, y_list):
     # mark maximum with text and circle
     ymax = max(y_list)
     xmax = x_list[y_list.index(ymax)]
-    plt.annotate("BEST YEAR", fontsize=8, color= 'red',
+    plt.annotate("BEST YEAR", fontsize=8, color='red',
                  xy=(xmax, ymax), xytext=(xmax, ymax + 0.006))
     circle = ptch.Ellipse((xmax, ymax), 0.18, 0.01, fill=False, color='red')
     plt.gca().add_artist(circle)

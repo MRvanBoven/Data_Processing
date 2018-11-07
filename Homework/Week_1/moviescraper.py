@@ -45,13 +45,13 @@ def extract_movies(dom):
         year = re.sub("[^0-9]", "", year)
 
         # find actors and remember them in one comma separated string
-        actors_start = film.find("p", "text-muted").find_next("p", "text-muted").find_next("span", "ghost") #adv_li_st_
-        # print(actors_start.find_next("a", ("name" and "adv_li_st_") in "href"))
-        actors = actors_start.find_next_siblings("a")
+        find_actors = film.find("p", "text-muted").find_next("p", "text-muted")\
+            .find_next("span", "ghost")
+        actors = find_actors.find_next_siblings("a")
         all_actors = ""
         for actor in actors:
-            all_actors += actor.string + ","
-        all_actors = all_actors[:-1]
+            all_actors += actor.string + ", "
+        all_actors = all_actors[:-2]
 
         # find and remember runtime, without " min" at the end
         runtime = film.find("span", "runtime").string[:-4]

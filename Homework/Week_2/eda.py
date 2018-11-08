@@ -6,7 +6,6 @@ This script does something.
 """
 
 import csv
-import numpy as np
 import pandas as pd
 
 INPUT_CSV = 'input.csv'
@@ -47,8 +46,12 @@ if __name__ == "__main__":
         # extract information from csv input file
         reader = csv.DictReader(infile)
 
-        # preprocess data to only contain full info rows, without surplus spaces
+        # preprocess data
         rows = cleanup(reader)
 
-        for row in rows:
-            print(row)
+        # for row in rows:
+        #     print(row)
+
+        data_frame = pd.DataFrame(rows)
+
+        print(data_frame)

@@ -13,29 +13,34 @@ INPUT_CSV = 'input.csv'
 # OUTPUT_CSV = 'movies.csv'
 
 
-def cleanup(ordered_dict, columns):
+def cleanup(dict_reader):
     """
-    Deletes rows lacking information and removes extra spaces from data
+    Deletes rows lacking information and removes extra spaces from data.
+    Takes a DictReader and its columns as input. Returns a list of dictionaries.
     """
 
-    correct_dict = ordered_dict
+    print(dict_reader)
 
-    for row in ordered_dict:
+    # code source: https://stackoverflow.com/questions/40320170/access-column-using-dictreader
+    columns = dict_reader.fieldnames
+
+    for column in columns:
+        print(column)
+
+    clean_rows = []
+    for dict in dict_reader:
+        # print(dict)
+        row = {}
+        info_complete = True
         for column in columns:
-            row[column] = row[column].strip()
+            # print(dict[column])
+            row[column] = dict[column].strip()
             if not row[column] or row[column] == "unknown":
-                 ordered_dict.remove(row)
-                 break
+                info_complete = False
+        if info_complete:
+            clean_rows.append(row)
 
-    # correct_rows = rows
-
-    # for row in rows:
-    #     for i in range(len(row)):
-    #         row[i] = row[i].strip()
-    #         # if not row[i] or row[i] == "unknown":
-    #         #     rows.remove(row)
-    #
-    # return rows
+    return clean_rows
 
 
 if __name__ == "__main__":
@@ -44,20 +49,7 @@ if __name__ == "__main__":
 
         reader = csv.DictReader(infile)
 
-        columns = ["Country", "Region", "Population", "Area (sq. mi.)",
-                   "Pop. Density (per sq. mi.)", "Coastline (coast/area ratio)",
-                   "Net migration", "Infant mortality (per 1000 births)",
-                   "GDP ($ per capita) dollars", "Literacy (%)",
-                   "Phones (per 1000)", "Arable (%)", "Crops (%)", "Other (%)",
-                   "Climate", "Birthrate", "Deathrate", "Agriculture",
-                   "Industry", "Service"]
-
-        rows = []
-        for dict in reader:
-            row = {}
-            for column in columns:
-                line[column] = dict[column].strip()
-            rows.append(line)
+        rows = cleanup(reader)
 
         for row in rows:
-            print(line)
+            print(row)

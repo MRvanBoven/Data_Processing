@@ -7,6 +7,7 @@ This script does something.
 
 import csv
 import pandas as pd
+import re
 
 INPUT_CSV = 'input.csv'
 
@@ -38,6 +39,15 @@ def cleanup(dict_reader):
 
     return clean_rows
 
+# def integers(dict_list, keys):
+#     """
+#     Returns dictionary list with all values at given keys converted to integers.
+#     """
+#
+#     for key in keys:
+#         for dict in dict_list:
+#             dict[key] = re.sub("[^0-9]", "", dict[key])
+
 
 if __name__ == "__main__":
 
@@ -46,12 +56,27 @@ if __name__ == "__main__":
         # extract information from csv input file
         reader = csv.DictReader(infile)
 
-        # preprocess data
+        # clean data to only contain rows with full info and no surplus spaces
         rows = cleanup(reader)
+
+        # preprocess data: convert needed data to floats/integers
+        for row in rows:
+            row["Pop. Density (per sq. mi.)"] \
+            = float(re.sub(",", ".", row["Pop. Density (per sq. mi.)"]))
+            row["Infant mortality (per 1000 births)"] \
+            = float(re.sub(",", ".", row["Infant mortality (per 1000 births)"]))
+            row["GDP ($ per capita) dollars"] \
+            = int(row["GDP ($ per capita) dollars"][:-8])
 
         # for row in rows:
         #     print(row)
 
-        data_frame = pd.DataFrame(rows)
+        df = pd.DataFrame(rows)
 
-        print(data_frame)
+        mean_gdp = df.loc[:, "GDP ($ per capita) dollars"].mean()
+        median_gdp = df.loc[:, "GDP ($ per capita) dollars"].median()
+        mode_gdp = df.loc[:, "GDP ($ per capita) dollars"].mode()
+
+        print(mean_gdp)
+        print(median_gdp)
+        print(mode_gdp)

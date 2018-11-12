@@ -6,11 +6,13 @@ This script does something.
 """
 
 import csv
+import json
 import matplotlib.pyplot as plt
 import pandas as pd
 import re
 
 INPUT_CSV = 'input.csv'
+OUTPUT_JSON = 'output.json'
 
 
 def boxplot(df, columns, layout_specs):
@@ -34,10 +36,10 @@ def central_tendency(df, columns):
     # calculate central tendency of given columns and save in a dictionary
     for column in columns:
 
-        mean = df.loc[:, column].mean()
-        median = df.loc[:, column].median()
-        mode = df.loc[:, column].mode()
-        std = df.loc[:, column].std()
+        mean = df[column].mean()
+        median = df[column].median()
+        mode = df[column].mode()[0]
+        std = df[column].std()
 
         # add computen central tendency to dictionary
         ct[column] = {"mean": mean, "median": median, "mode": mode, "std": std}
@@ -81,11 +83,11 @@ def five_nr_summary(df, columns):
     # calculate five number summary of given columns and add to the summary dict
     for column in columns:
 
-        min = df.loc[:, column].min()
-        quart1 = df.loc[:, column].quantile(0.25)
-        median = df.loc[:, column].median()
-        quart3 = df.loc[:, column].quantile(0.75)
-        max = df.loc[:, column].max()
+        min = df[column].min()
+        quart1 = df[column].quantile(0.25)
+        median = df[column].median()
+        quart3 = df[column].quantile(0.75)
+        max = df[column].max()
 
         # add computed five number summary of column to dicionary
         summary[column] = {"min": min, "quart1": quart1, "median": median,
@@ -99,6 +101,7 @@ def histogram(df, columns, layout_specs):
     """
 
     for column in columns:
+
         # find number of rows in column
         nr_rows = df[column].count()
 
@@ -139,6 +142,8 @@ if __name__ == "__main__":
         reader = csv.DictReader(infile)
 
         # remember columns of interest
+        country = "Country"
+        reg = "Region"
         pop_dens = "Pop. Density (per sq. mi.)"
         inf_mor = "Infant mortality (per 1000 births)"
         gdp = "GDP ($ per capita) dollars"
@@ -152,17 +157,16 @@ if __name__ == "__main__":
             row[inf_mor] = float(re.sub(",", ".", row[inf_mor]))
             row[gdp] = int(row[gdp][:-8])
 
-        # for row in rows:
-        #     print(row)
-
         # create pandas dataframe
         df = pd.DataFrame(rows)
 
         # calculate central tendency of GDP and infant mortality data
         cen_ten = central_tendency(df, [gdp, inf_mor])
 
-        print(cen_ten)
-        print(cen_ten[gdp]["mean"])
+        # print central tendency of GDP data
+        print("\n>", gdp, " central tendency computations")
+        for ct in cen_ten[gdp]:
+            print(ct, ": ", cen_ten[gdp][ct])
 
         # specify layout for histogram of GDP data
         spec_layout = {"suptitle": "GDP of Several Countries",
@@ -174,11 +178,16 @@ if __name__ == "__main__":
                        "ylabel": "Frequency"}
 
         # plot histogram of GDP data in range of -3 std to +3 std around mean
-        histogram(df[abs(df.loc[:, gdp] - cen_ten[gdp]["mean"])
+        histogram(df[abs(df[gdp] - cen_ten[gdp]["mean"])
                      <= 3 * cen_ten[gdp]["std"]], [gdp], spec_layout)
 
         # calculate five number summary of infant mortality data
         fnr_sum = five_nr_summary(df, [inf_mor])
+
+        # print five number summary of infant mortality data
+        print("\n>", inf_mor, " five number summary")
+        for nr in fnr_sum[inf_mor]:
+            print(nr, ": ", fnr_sum[inf_mor][nr])
 
         # specify layout for boxplot of infant mortality data
         spec_layout = {"suptitle": "Infant Mortality in Several Countries",
@@ -190,5 +199,13 @@ if __name__ == "__main__":
                        "ylabel": ""}
 
         # boxplot of infant mortality data in range -3 std to +3 std around mean
-        boxplot(df[abs(df.loc[:, inf_mor] - cen_ten[inf_mor]["mean"])
+        boxplot(df[abs(df[inf_mor] - cen_ten[inf_mor]["mean"])
                    <= 3 * cen_ten[inf_mor]["std"]], [inf_mor], spec_layout)
+
+        # write data from columns of interest to json format
+        json_data = {}
+        for row in rows:
+            json_data[row[country]] = {reg: row[reg], pop_dens: row[pop_dens],
+                                       inf_mor: row[inf_mor], gdp: row[gdp]}
+        with open(OUTPUT_JSON, 'w') as outfile:
+            json.dump(json_data, outfile)

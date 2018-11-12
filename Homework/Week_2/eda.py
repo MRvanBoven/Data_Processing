@@ -6,6 +6,7 @@ This script does something.
 """
 
 import csv
+import matplotlib.pyplot as plt
 import pandas as pd
 import re
 
@@ -39,15 +40,6 @@ def cleanup(dict_reader):
 
     return clean_rows
 
-# def integers(dict_list, keys):
-#     """
-#     Returns dictionary list with all values at given keys converted to integers.
-#     """
-#
-#     for key in keys:
-#         for dict in dict_list:
-#             dict[key] = re.sub("[^0-9]", "", dict[key])
-
 
 if __name__ == "__main__":
 
@@ -71,12 +63,30 @@ if __name__ == "__main__":
         # for row in rows:
         #     print(row)
 
+        # create pandas dataframe
         df = pd.DataFrame(rows)
 
+        # calculate central tendency
         mean_gdp = df.loc[:, "GDP ($ per capita) dollars"].mean()
         median_gdp = df.loc[:, "GDP ($ per capita) dollars"].median()
         mode_gdp = df.loc[:, "GDP ($ per capita) dollars"].mode()
+        std_gdp = df.loc[:, "GDP ($ per capita) dollars"].std()
 
         print(mean_gdp)
         print(median_gdp)
         print(mode_gdp)
+        print(std_gdp)
+
+        # find number of rows in gdp column
+        nr_rows = df["GDP ($ per capita) dollars"].count()
+
+        # plot histogram of gdp data
+        hist = df.hist(bins = nr_rows, column = "GDP ($ per capita) dollars",
+                       grid = False)
+
+        # histogram layout
+        plt.suptitle("GDP of several countries", fontsize=13, fontweight='bold')
+        plt.title("By Maud van Boven", fontsize=10)
+        plt.xlabel("GDP ($ per capita)")
+        plt.ylabel("Frequency")
+        plt.show()

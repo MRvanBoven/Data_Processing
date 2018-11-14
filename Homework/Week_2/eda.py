@@ -69,6 +69,7 @@ def cleanup(columns, dict_reader):
 
     return clean
 
+
 def histogram(df, column, title, xlabel):
     """
     Plots and shows a histogram of given column from given data frame, with

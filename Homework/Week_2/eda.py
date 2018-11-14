@@ -16,6 +16,23 @@ INPUT_CSV = 'input.csv'
 OUTPUT_JSON = 'output.json'
 
 
+def boxplot(df, column, title):
+    """
+    Plots and shows a boxplot of given column from given data frame, with given
+    title.
+    """
+
+    # plot boxplot of given column
+    df.boxplot(column)
+
+    # layout
+    plt.suptitle(title, fontsize=13, fontweight='bold')
+    plt.title("By Maud van Boven", fontsize=10)
+
+    plt.show()
+    plt.clf()
+
+
 def central_tendency(df, columns):
     """
     Computes central tendency of given columns and returns it in a dictionary.
@@ -51,6 +68,24 @@ def cleanup(columns, dict_reader):
                                            or "" in dict.values())]
 
     return clean
+
+def histogram(df, column, title, xlabel):
+    """
+    Plots and shows a histogram of given column from given data frame, with
+    given layout specifications.
+    """
+
+    # plot histogram of given column
+    df.hist(bins=df[column].count(), column=column, grid=False)
+
+    # layout
+    plt.suptitle(title, fontsize=13, fontweight='bold')
+    plt.title("By Maud van Boven", fontsize=10)
+    plt.xlabel(xlabel)
+    plt.ylabel("Frequency")
+
+    plt.show()
+    plt.clf()
 
 
 if __name__ == "__main__":
@@ -93,15 +128,7 @@ if __name__ == "__main__":
         print(f"{ct}".ljust(6) + f"{round(cen_ten[gdp][ct], 2)}".rjust(10))
 
     # plot histogram of GDP data
-    df.hist(bins=df[gdp].count(), column=gdp, grid=False)
-
-    plt.suptitle("GDP of Several Countries", fontsize=13, fontweight='bold')
-    plt.title("By Maud van Boven", fontsize=10)
-    plt.xlabel("GDP ($ per capita)")
-    plt.ylabel("Frequency")
-
-    plt.show()
-    plt.clf()
+    histogram(df, gdp, "GDP of Several Countries", "GDP ($ per capita)")
 
     # compute and print five number summary of infant mortality data
     summary = df[inf_mor].describe()[["min", "25%", "50%", "75%", "max"]]
@@ -109,14 +136,7 @@ if __name__ == "__main__":
     print(summary.to_string(header=None))
 
     # plot boxplot of infant mortality data
-    df.boxplot(inf_mor)
-
-    plt.suptitle("Infant Mortality in Several Countries", fontsize=13,
-                 fontweight='bold')
-    plt.title("By Maud van Boven", fontsize=10)
-
-    plt.show()
-    plt.clf()
+    boxplot(df, inf_mor, "Infant Mortality in Several Countries")
 
     # write processed data from columns of interest to json file
     with open(OUTPUT_JSON, 'w') as outfile:

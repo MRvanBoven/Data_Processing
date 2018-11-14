@@ -2,7 +2,8 @@
 # Name: Maud van Boven
 # Student number: 12474673
 """
-This script does something.
+This script loads in a CSV file, cleans, preprocesses and analyzes the read in
+data, and creates a histogram, boxplot, and .json file.
 """
 
 import csv
@@ -15,123 +16,40 @@ INPUT_CSV = 'input.csv'
 OUTPUT_JSON = 'output.json'
 
 
-def boxplot(df, columns, layout_specs):
-    """
-    Plots a boxplot of the given columns of the given data frame.
-    """
-
-    boxplot = df.boxplot(columns)
-    layout(layout_specs)
-
-    plt.show()
-    plt.clf()
-
 def central_tendency(df, columns):
     """
     Computes central tendency of given columns and returns it in a dictionary.
     """
 
-    ct = {}
-
     # calculate central tendency of given columns and save in a dictionary
+    ct = {}
     for column in columns:
-
         mean = df[column].mean()
         median = df[column].median()
         mode = df[column].mode()[0]
-        std = df[column].std()
-
-        # add computen central tendency to dictionary
-        ct[column] = {"mean": mean, "median": median, "mode": mode, "std": std}
+        ct[column] = {"mean": mean, "median": median, "mode": mode}
 
     return ct
 
-def cleanup(cols, dict_reader):
+def cleanup(columns, dict_reader):
     """
-    Deletes rows lacking info in given columns and removes surplus spaces.
-    Takes a DictReader and its columns as input. Returns a list of dictionaries.
+    Saves those rows with full info in given columns and removes surplus spaces.
+    Returns a list of dictionaries.
     """
 
-    # extract column names
-    columns = dict_reader.fieldnames
-
-    # save all complete, and 'de-spaced' dictionaries in new list
-    clean_rows = []
+    # save 'de-spaced' columns of interest in temporary list
+    temp = []
     for dict in dict_reader:
-        row = {}
-        info_complete = True
-
-        # remove surplus spaces and check if rows contain info for given columns
+        clean_dict = {}
         for column in columns:
-            row[column] = dict[column].strip()
-            if (not row[column] or row[column] == "unknown") and column in cols:
-                info_complete = False
+            clean_dict[column] = dict[column].strip()
+        temp.append(clean_dict)
 
-        # save rows with complete information for given columns
-        if info_complete:
-            clean_rows.append(row)
+    # save rows wit full info in all columns of interest
+    clean = [dict for dict in temp if not ("unknown" in dict.values()
+                                           or "" in dict.values())]
 
-    return clean_rows
-
-def five_nr_summary(df, columns):
-    """
-    Computes Five Number Summary of given columns and returns it in dictionary.
-    """
-
-    summary = {}
-
-    # calculate five number summary of given columns and add to the summary dict
-    for column in columns:
-
-        min = df[column].min()
-        quart1 = df[column].quantile(0.25)
-        median = df[column].median()
-        quart3 = df[column].quantile(0.75)
-        max = df[column].max()
-
-        # add computed five number summary of column to dicionary
-        summary[column] = {"min": min, "quart1": quart1, "median": median,
-                           "quart3": quart3, "max": max}
-
-    return summary
-
-def histogram(df, columns, layout_specs):
-    """
-    Plots given columns in a histogram.
-    """
-
-    for column in columns:
-
-        # find number of rows in column
-        nr_rows = df[column].count()
-
-        # plot histogram of column data
-        hist = df.hist(bins = nr_rows, column = column, grid = False)
-
-    layout(layout_specs)
-
-    plt.show()
-    plt.clf()
-
-def layout(specs):
-    """
-    Defines plot layout according to given specifications. In case of a
-    ValueError the function reverts to standard layout.
-    """
-
-    # for specification in specifications:
-    #     plt.specification(layout[specification])
-
-    try:
-        plt.suptitle(specs["suptitle"],
-                     fontsize=specs["suptitle_size"],
-                     fontweight=specs["suptitle_weight"])
-        plt.title(specs["title"],
-                  fontsize=specs["title_size"])
-        plt.xlabel(specs["xlabel"])
-        plt.ylabel(specs["ylabel"])
-    except ValueError:
-        pass
+    return clean
 
 
 if __name__ == "__main__":
@@ -147,65 +65,58 @@ if __name__ == "__main__":
         pop_dens = "Pop. Density (per sq. mi.)"
         inf_mor = "Infant mortality (per 1000 births)"
         gdp = "GDP ($ per capita) dollars"
+        cols_int = [country, reg, pop_dens, inf_mor, gdp]
 
-        # let data contain full info in columns of interst and no surplus spaces
-        rows = cleanup([pop_dens, inf_mor, gdp], reader)
+        # get data from columns of interst with full info and no surplus spaces
+        clean_rows = cleanup(cols_int, reader)
 
-        # convert needed data to floats/integers
-        for row in rows:
-            row[pop_dens] = float(re.sub(",", ".", row[pop_dens]))
-            row[inf_mor] = float(re.sub(",", ".", row[inf_mor]))
-            row[gdp] = int(row[gdp][:-8])
+        infile.close()
 
-        # create pandas dataframe
-        df = pd.DataFrame(rows)
+    # convert needed data to floats/integers
+    for row in clean_rows:
+        row[pop_dens] = float(re.sub(",", ".", row[pop_dens]))
+        row[inf_mor] = float(re.sub(",", ".", row[inf_mor]))
+        row[gdp] = int(row[gdp][:-8])
 
-        # calculate central tendency of GDP and infant mortality data
-        cen_ten = central_tendency(df, [gdp, inf_mor])
+    # create pandas dataframe
+    df = pd.DataFrame(clean_rows, columns=cols_int)
 
-        # print central tendency of GDP data
-        print("\n>", gdp, " central tendency computations")
-        for ct in cen_ten[gdp]:
-            print(ct, ": ", cen_ten[gdp][ct])
+    # remove extreme outliers (outside range of -10std to +10std from mean)
+    for col in df.select_dtypes(include="number"):
+        df = df[abs(df[col] - df[col].mean()) <= 10 * df[col].std()]
 
-        # specify layout for histogram of GDP data
-        spec_layout = {"suptitle": "GDP of Several Countries",
-                       "suptitle_size": 13,
-                       "suptitle_weight": 'bold',
-                       "title": "By Maud van Boven",
-                       "title_size": 10,
-                       "xlabel": "GDP ($ per capita)",
-                       "ylabel": "Frequency"}
+    # compute and print central tendency of GDP data
+    cen_ten = central_tendency(df, [gdp])
+    print("\n>", gdp, "central tendency")
+    for ct in cen_ten[gdp]:
+        print(f"{ct}".ljust(6) + f"{round(cen_ten[gdp][ct], 2)}".rjust(10))
 
-        # plot histogram of GDP data in range of -3 std to +3 std around mean
-        histogram(df[abs(df[gdp] - cen_ten[gdp]["mean"])
-                     <= 3 * cen_ten[gdp]["std"]], [gdp], spec_layout)
+    # plot histogram of GDP data
+    df.hist(bins = df[gdp].count(), column = gdp, grid = False)
 
-        # calculate five number summary of infant mortality data
-        fnr_sum = five_nr_summary(df, [inf_mor])
+    plt.suptitle("GDP of Several Countries", fontsize=13, fontweight='bold')
+    plt.title("By Maud van Boven", fontsize=10)
+    plt.xlabel("GDP ($ per capita)")
+    plt.ylabel("Frequency")
 
-        # print five number summary of infant mortality data
-        print("\n>", inf_mor, " five number summary")
-        for nr in fnr_sum[inf_mor]:
-            print(nr, ": ", fnr_sum[inf_mor][nr])
+    plt.show()
+    plt.clf()
 
-        # specify layout for boxplot of infant mortality data
-        spec_layout = {"suptitle": "Infant Mortality in Several Countries",
-                       "suptitle_size": 13,
-                       "suptitle_weight": 'bold',
-                       "title": "By Maud van Boven",
-                       "title_size": 10,
-                       "xlabel": "",
-                       "ylabel": ""}
+    # compute and print five number summary of infant mortality data
+    summary = df[inf_mor].describe()[["min", "25%", "50%", "75%", "max"]]
+    print("\n>", inf_mor, "five number summary")
+    print(summary.to_string(header=None))
 
-        # boxplot of infant mortality data in range -3 std to +3 std around mean
-        boxplot(df[abs(df[inf_mor] - cen_ten[inf_mor]["mean"])
-                   <= 3 * cen_ten[inf_mor]["std"]], [inf_mor], spec_layout)
+    # plot boxplot of infant mortality data
+    df.boxplot(inf_mor)
 
-        # write data from columns of interest to json format
-        json_data = {}
-        for row in rows:
-            json_data[row[country]] = {reg: row[reg], pop_dens: row[pop_dens],
-                                       inf_mor: row[inf_mor], gdp: row[gdp]}
-        with open(OUTPUT_JSON, 'w') as outfile:
-            json.dump(json_data, outfile)
+    plt.suptitle("Infant Mortality in Several Countries", fontsize=13,
+                 fontweight='bold')
+    plt.title("By Maud van Boven", fontsize=10)
+
+    plt.show()
+    plt.clf()
+
+    # write processed data from columns of interest to json file
+    with open(OUTPUT_JSON, 'w') as outfile:
+        json.dump(df.set_index(country).T.to_dict(), outfile, indent=4)

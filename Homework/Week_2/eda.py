@@ -31,6 +31,7 @@ def central_tendency(df, columns):
 
     return ct
 
+
 def cleanup(columns, dict_reader):
     """
     Saves those rows with full info in given columns and removes surplus spaces.
@@ -92,7 +93,7 @@ if __name__ == "__main__":
         print(f"{ct}".ljust(6) + f"{round(cen_ten[gdp][ct], 2)}".rjust(10))
 
     # plot histogram of GDP data
-    df.hist(bins = df[gdp].count(), column = gdp, grid = False)
+    df.hist(bins=df[gdp].count(), column=gdp, grid=False)
 
     plt.suptitle("GDP of Several Countries", fontsize=13, fontweight='bold')
     plt.title("By Maud van Boven", fontsize=10)

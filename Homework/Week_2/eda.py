@@ -9,6 +9,7 @@ data, and creates a histogram, boxplot, and .json file.
 import csv
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import re
 
@@ -49,27 +50,6 @@ def central_tendency(df, columns):
     return ct
 
 
-def cleanup(columns, dict_reader):
-    """
-    Saves those rows with full info in given columns and removes surplus spaces.
-    Returns a list of dictionaries.
-    """
-
-    # save 'de-spaced' columns of interest in temporary list
-    temp = []
-    for dict in dict_reader:
-        clean_dict = {}
-        for column in columns:
-            clean_dict[column] = dict[column].strip()
-        temp.append(clean_dict)
-
-    # save rows wit full info in all columns of interest
-    clean = [dict for dict in temp if not ("unknown" in dict.values()
-                                           or "" in dict.values())]
-
-    return clean
-
-
 def histogram(df, column, title, xlabel):
     """
     Plots and shows a histogram of given column from given data frame, with
@@ -89,38 +69,45 @@ def histogram(df, column, title, xlabel):
     plt.clf()
 
 
+def preprocess(df):
+    """
+    Preprocesses given data frame. Returns preprocessed data frame.
+    """
+
+    # remove surplus spaces from region and extract only numbers from gdp data
+    df[reg] = df[reg].str.strip()
+    df[gdp] = df[gdp].str.extract('(\d+)')
+
+    # replace , with . (needed for floats), convert numeric cols to numeric data
+    for col in df.select_dtypes([np.object]).columns:
+        df[col] = df[col].str.replace(",", ".")
+        df[col] = pd.to_numeric(df[col], errors='ignore')
+
+    # replace extreme outliers (out range -10std to +10std from mean) with NaN
+    for col in df.select_dtypes(include="number"):
+        df.loc[abs(df[col] - df[col].mean()) > 10 * df[col].std()] = np.NaN
+
+    return df
+
+
 if __name__ == "__main__":
 
     with open(INPUT_CSV, 'r') as infile:
 
-        # extract information from csv input file
-        reader = csv.DictReader(infile)
-
-        # remember columns of interest
-        country = "Country"
-        reg = "Region"
-        pop_dens = "Pop. Density (per sq. mi.)"
-        inf_mor = "Infant mortality (per 1000 births)"
-        gdp = "GDP ($ per capita) dollars"
-        cols_int = [country, reg, pop_dens, inf_mor, gdp]
-
-        # get data from columns of interst with full info and no surplus spaces
-        clean_rows = cleanup(cols_int, reader)
+        # create pandas data frame from csv data in infile
+        df = pd.read_csv(infile, index_col="Country")
 
         infile.close()
 
-    # convert needed data to floats/integers
-    for row in clean_rows:
-        row[pop_dens] = float(re.sub(",", ".", row[pop_dens]))
-        row[inf_mor] = float(re.sub(",", ".", row[inf_mor]))
-        row[gdp] = int(row[gdp][:-8])
+    # remember columns of interest
+    country = "Country"
+    reg = "Region"
+    pop_dens = "Pop. Density (per sq. mi.)"
+    inf_mor = "Infant mortality (per 1000 births)"
+    gdp = "GDP ($ per capita) dollars"
 
-    # create pandas dataframe
-    df = pd.DataFrame(clean_rows, columns=cols_int)
-
-    # remove extreme outliers (outside range of -10std to +10std from mean)
-    for col in df.select_dtypes(include="number"):
-        df = df[abs(df[col] - df[col].mean()) <= 10 * df[col].std()]
+    # preprocess data data frame
+    df = preprocess(df)
 
     # compute and print central tendency of GDP data
     cen_ten = central_tendency(df, [gdp])
@@ -139,6 +126,7 @@ if __name__ == "__main__":
     # plot boxplot of infant mortality data
     boxplot(df, inf_mor, "Infant Mortality in Several Countries")
 
-    # write processed data from columns of interest to json file
+    # write columns of interest to json file, replacing NaN with None
     with open(OUTPUT_JSON, 'w') as outfile:
-        json.dump(df.set_index(country).T.to_dict(), outfile, indent=4)
+        json.dump(df[[reg, pop_dens, inf_mor, gdp]].\
+                  where((pd.notnull(df)), None).T.to_dict(), outfile, indent=4)

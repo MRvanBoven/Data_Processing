@@ -2,8 +2,8 @@
 # Name: Maud van Boven
 # Student number: 12474673
 """
-This script loads in a CSV file, cleans, preprocesses and analyzes the read in
-data, and creates a histogram, boxplot, and .json file.
+This script loads in a CSV file, preprocesses and analyzes the read in data, and
+creates a histogram, boxplot, and .json file.
 """
 
 import csv
@@ -128,5 +128,5 @@ if __name__ == "__main__":
 
     # write columns of interest to json file, replacing NaN with None
     with open(OUTPUT_JSON, 'w') as outfile:
-        json.dump(df[[reg, pop_dens, inf_mor, gdp]].\
+        json.dump(df[[reg, pop_dens, inf_mor, gdp]].
                   where((pd.notnull(df)), None).T.to_dict(), outfile, indent=4)

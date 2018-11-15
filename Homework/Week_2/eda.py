@@ -74,9 +74,10 @@ def preprocess(df):
     Preprocesses given data frame. Returns preprocessed data frame.
     """
 
-    # remove surplus spaces from region and extract only numbers from gdp data
+    # remove surplus spaces region, extract numbers gdp, replace unknown -> NaN
     df[reg] = df[reg].str.strip()
     df[gdp] = df[gdp].str.extract('(\d+)')
+    df = df.replace("unknown", np.NaN)
 
     # replace , with . (needed for floats), convert numeric cols to numeric data
     for col in df.select_dtypes([np.object]).columns:

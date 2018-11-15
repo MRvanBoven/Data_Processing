@@ -5,7 +5,7 @@ This GitHub repository is used for the course Data Processing, of the University
 ## Useful for correctors
 
 ### GitHub pages
-GitHub pages: http://mrvanboven.github.io
+GitHub pages: https://mrvanboven.github.io/Data_Processing/
 
 ## Authors
 

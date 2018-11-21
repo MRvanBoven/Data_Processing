@@ -1,95 +1,137 @@
 
 
+// load in input file
 let fileName = "output.json";
 let txtFile = new XMLHttpRequest();
 txtFile.onreadystatechange = function()
 {
   if (txtFile.readyState === 4 && txtFile.status == 200)
   {
+    // save arrays of relevant JSON data
     let data = JSON.parse(txtFile.responseText);
-
-    let years = Object.values(data).map(x => parseInt(x.Year));
+    let years = Object.keys(data).map(x => parseInt(x));
     let lens = Object.values(data).map(x => parseInt(x.Length));
 
-    // remove rows with missing lenghts
-    while (lens.findIndex(Number.isNaN) !== -1)
-    {
-      let index = lens.findIndex(Number.isNaN);
-      lens.splice(index, 1);
-      years.splice(index, 1);
-    }
-
-    // console.log(years);
-    // console.log(lengths);
-
-    // Object.values(data).forEach(function(Year, Lenght)
-    // {
-    //   console.log(Year)
-    //   console.log(Lenght)
-    // })
-
-    let canvas = document.getElementById("graph");
-    let ctx = canvas.getContext('2d')
-
-    // define canvas dimensions
-    let cwidth = ctx.canvas.width  = window.innerWidth - 15;
-    let cheight = ctx.canvas.height = window.innerHeight - 100;
-
-    // define graph dimensions
-    let gwidth = cwidth - 50, gheight = cheight - 50;
-
-    // ctx.fillStyle = 'rgb(200,0,0)';
-    // ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // let yearsMin = Math.min(...years), yearsMax = Math.max(...years);
-    // let lensMin = Math.min(...lens), lenMax = Math.max(...lens);
-    //
-    // console.log(yearsMin)
-    // console.log(yearsMax)
-    // console.log(lensMin)
-    // console.log(lensMax)
-
-    let x = transform(years, width), y = transform(lens, height);
-
-    // console.log(x)
-    // console.log(y)
-
-    // set styles for axes
-    ctx.lineWidth = 3;
-    ctx.font = "15px sans-serif"
-
-    // draw axes
-    ctx.beginPath();
-    ctx.moveTo(50, 0);
-    ctx.lineTo(50, gheight);
-    ctx.lineTo(width, gheight);
-    ctx.stroke();
-
-    // axis labels
-    ctx.fillText("Year", width / 2, height);
-    // ctx.save();
-    ctx.rotate(-90 * Math.PI / 180);
-    ctx.fillText("Length (min)", -height / 2, 10);
-    ctx.restore();
-    // ctx.rotate(-90 * Math.PI / 180);
+    // draw a graph of saved data
+    graph(years, lens);
   }
-
-  // transforms data from to canvas coordinates in given direction, return array
-  function transform(array, dir)
-  {
-    let c = [];
-
-    for (let elem of array)
-    {
-      newc = (elem - Math.min(...array))
-             / (Math.max(...array) - Math.min(...array))
-             * (dir - 50);
-      c.push(newc);
-    }
-
-    return c;
-  }
-
 }
 txtFile.open("GET", fileName);
 txtFile.send();
+
+
+// add data to graph
+function addData(ctx, xData, yData, gMargin, cTopMargin)
+{
+  // set graph styles
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#000000";
+
+  // draw graph, starting at first data point and drawing lines to each next
+  ctx.beginPath();
+  ctx.moveTo(gMargin + xData[0], cTopMargin + yData[0]);
+  for (i = 1; i < xData.length; i++)
+  {
+    ctx.lineTo(gMargin + xData[i], cTopMargin + yData[i]);
+  }
+  ctx.stroke();
+}
+
+
+// draws graph axes with labels
+function axes(ctx, gMargin, gHeight, cLeftMargin, cTopMargin, cWidth, cHeight)
+{
+  // set styles for axes
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#000000";
+  ctx.font = "15px sans-serif"
+
+  // draw axes
+  ctx.beginPath();
+  ctx.moveTo(gMargin, cTopMargin);
+  ctx.lineTo(gMargin, cHeight - gMargin);
+  ctx.lineTo(cWidth, cHeight - gMargin);
+  ctx.stroke();
+
+  // axis labels
+  ctx.fillText("Year", (cWidth + cLeftMargin) / 2, cHeight);
+  ctx.rotate(-90 * Math.PI / 180);
+  ctx.fillText("Length (min)", -(cHeight + cTopMargin) / 2, cLeftMargin);
+  ctx.rotate(90 * Math.PI / 180);
+}
+
+
+// draws graph of given data on html canvas
+function graph(xData, yData)
+{
+  let canvas = document.getElementById("graph");
+  let ctx = canvas.getContext('2d')
+
+  // define canvas dimensions, letting them adapt to screen size
+  let cLeftMargin = 15, cRightMargin = 30, cTopMargin = 80, cBottomMargin = 200;
+  let cWidth = ctx.canvas.width  = window.innerWidth - cRightMargin;
+  let cHeight = ctx.canvas.height = window.innerHeight - cBottomMargin;
+
+  // define graph dimensions
+  let gMargin = 50;
+  let gWidth = cWidth - gMargin, gHeight = cHeight - cTopMargin - gMargin;
+
+  // transform input data to canvas coordinates
+  let x = transform(xData, gWidth);
+  let y = transform(yData, 0.9 * gHeight, Math.min(...yData) + gMargin);
+
+  // flip y vertically
+  for (i = 0; i < y.length; i++)
+  {
+    y[i] = cTopMargin + gHeight - y[i];
+  }
+
+  // draw axis reference values and reference lines
+  reference(ctx, x, y, gMargin, gHeight, cTopMargin, cWidth);
+
+  // make graph axes with labels
+  axes(ctx, gMargin, gHeight, cLeftMargin, cTopMargin, cWidth, cHeight);
+
+  // draw graph
+  addData(ctx, x, y, gMargin, cTopMargin);
+}
+
+
+// draws reference values on the axes and refernce lines in graph area
+function reference(ctx, xData, yData, gMargin, gHeight, cTopMargin, cWidth)
+{
+  // set styles
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#BBB";
+
+  // draw reference lines
+  for (i = 0; i < 0.9; i += 0.1)
+  {
+    ctx.beginPath();
+    ctx.moveTo(gMargin, i * (gHeight) + cTopMargin);
+    ctx.lineTo(cWidth, i * (gHeight) + cTopMargin);
+    ctx.stroke();
+  }
+
+  // set refernce values x asis
+
+  // set refernce values y axis
+
+}
+
+
+// transforms data to canvas coordinates in given direction, returns array
+function transform(array, dir, offset = 0)
+{
+  let c = [];
+
+  for (let elem of array)
+  {
+    newc = (elem - Math.min(...array))
+           / (Math.max(...array) - Math.min(...array))
+           * (dir) + offset;
+    c.push(newc);
+  }
+
+  return c;
+}

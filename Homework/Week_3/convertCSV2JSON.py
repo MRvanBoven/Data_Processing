@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 
-# source input: https://perso.telecom-paristech.fr/eagan/class/igr204/datasets
+# source: https://perso.telecom-paristech.fr/eagan/class/igr204/datasets
 INPUT_CSV = 'film.csv'
 OUTPUT_JSON = 'output.json'
 

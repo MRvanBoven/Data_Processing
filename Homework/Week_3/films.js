@@ -29,7 +29,7 @@ txtFile.send();
 /**
  * makes plot of input data and adds it to graph
  */
-function addData(ctx, x, y, gLeft, gTop) {
+function addData(ctx, x, y) {
   // set graph styles
   ctx.lineWidth = 1;
   ctx.strokeStyle = "#000000";
@@ -47,8 +47,7 @@ function addData(ctx, x, y, gLeft, gTop) {
 /**
  * draws graph axes with labels
  */
-function axes(ctx, gLeft, gRight, gTop, gBottom, gWidth, gHeight, cLeftMargin,
-              cHeight) {
+function axes(ctx) {
   // set styles for axes
   ctx.lineWidth = 3;
   ctx.strokeStyle = "#000000";
@@ -62,9 +61,9 @@ function axes(ctx, gLeft, gRight, gTop, gBottom, gWidth, gHeight, cLeftMargin,
   ctx.stroke();
 
   // axis labels
-  ctx.fillText("Year", gWidth / 2 + gLeft, cHeight);
+  ctx.fillText("Year", gWidth / 2 + gLeft - 15, cHeight);
   ctx.rotate(-90 * Math.PI / 180);
-  ctx.fillText("Length (min)", -(gHeight / 2 + gTop), cLeftMargin / 3);
+  ctx.fillText("Length (min)", -(gHeight / 2 + gTop) - 35, cLeftMargin / 3);
   ctx.rotate(90 * Math.PI / 180);
 }
 
@@ -76,22 +75,26 @@ function graph(xData, yData) {
   let canvas = document.getElementById("graph");
   let ctx = canvas.getContext('2d')
 
-  // define canvas dimensions, letting them adapt to screen size
-  let cLeftMargin = 50, cRightMargin = 20, cTopMargin = 80, cBottomMargin = 50;
-  let cWidth = ctx.canvas.width = window.innerWidth - 30;
-  let cHeight = ctx.canvas.height = window.innerHeight - 200;
+  // define canvas dimensions (global), letting them adapt to screen size
+  cLeftMargin = 50, cRightMargin = 20, cTopMargin = 80, cBottomMargin = 50;
+  cWidth = ctx.canvas.width = window.innerWidth - 30;
+  cHeight = ctx.canvas.height = window.innerHeight - 200;
 
-  // define graph dimensions
-  let gLeft = cLeftMargin,
-      gRight = cWidth - cRightMargin;
-  let gTop = cTopMargin,
-      gBottom = cHeight - cBottomMargin;
-  let gWidth = gRight - gLeft,
-      gHeight = gBottom - gTop;
+  // define graph dimensions as global variables
+  gLeft = cLeftMargin;
+  gRight = cWidth - cRightMargin;
+  gTop = cTopMargin;
+  gBottom = cHeight - cBottomMargin;
+  gWidth = gRight - gLeft;
+  gHeight = gBottom - gTop;
 
   // transform input data to canvas coordinates
-  let x = transform(xData, gWidth, Math.max(...xData), Math.min(...xData));
-  let y = transform(yData, gHeight, 150, 50);
+  let xMin = Math.floor(Math.min(...xData) / 10) * 10,
+      xMax = Math.ceil(Math.max(...xData) / 10) * 10;
+  let yMin = Math.floor(Math.min(...yData) / 10) * 10,
+      yMax = Math.ceil(Math.max(...yData) / 10) * 10;
+  let x = transform(xData, gWidth, xMin, xMax);
+  let y = transform(yData, gHeight, yMin, yMax);
 
   // flip y coordinates vertically
   for (i = 0; i < y.length; i++) {
@@ -99,52 +102,54 @@ function graph(xData, yData) {
   }
 
   // draw axis reference values and reference lines
-  reference(ctx, xData, yData, gLeft, gRight, gBottom, gTop, gWidth, gHeight,
-            cLeftMargin, cBottomMargin);
+  reference(ctx, xMin, xMax, yMin, yMax);
 
   // make graph axes with labels
-  axes(ctx, gLeft, gRight, gTop, gBottom, gWidth, gHeight, cLeftMargin,
-       cHeight);
+  axes(ctx);
 
   // draw graph
-  addData(ctx, x, y, gLeft, gTop);
+  addData(ctx, x, y);
 
   // add graph title
   ctx.font = "20px sans-serif";
   ctx.fillText("Average Film Lengths Through the 20th Century",
-               gWidth / 2 - 150, cTopMargin / 2);
+               gWidth / 2 - 160, cTopMargin / 2);
 }
 
 
 /**
  * draws reference values on the axes and horizontal refernce lines in graph area
  */
-function reference(ctx, xData, yData, gLeft, gRight, gBottom, gTop, gWidth,
-                   gHeight, cLeftMargin, cBottomMargin) {
+function reference(ctx, xMin, xMax, yMin, yMax) {
   // set styles
   ctx.lineWidth = 1;
-  ctx.strokeStyle = "#BBB";
+  ctx.strokeStyle = "#DDDDDD";
 
-  // draw horizontal reference lines
-  for (i = 0; i < 10; i++) {
+  // set reference values y axis
+  let yRange = yMax - yMin;
+  for (i = 0; i < yRange / 10; i++) {
+    ctx.fillText(yMax - i * 10, gLeft - cLeftMargin / 2,
+                 i / (yRange / 10) * gHeight + gTop);
+
+    // draw horizontal reference lines
     ctx.beginPath();
-    ctx.moveTo(gLeft, i / 10 * gHeight + gTop);
-    ctx.lineTo(gRight, i / 10 * gHeight + gTop);
+    ctx.moveTo(gLeft, i / (yRange / 10) * gHeight + gTop);
+    ctx.lineTo(gRight, i / (yRange / 10) * gHeight + gTop);
     ctx.stroke();
   }
 
-  // set reference values y axis
-  for (i = 0; i < 10; i++) {
-    ctx.fillText(150 - i * 10, gLeft - cLeftMargin / 2,
-                 i / 10 * gHeight + gTop);
-  }
-
   // set reference values x axis
-  xRange = Math.max(...xData) - Math.min(...xData);
-  for (i = 0; i <= 10; i++) {
-    ctx.fillText(Math.round(i / 10 * xRange + Math.min(...xData)),
-                 i / 10 * gWidth + gLeft - cLeftMargin / 5,
+  let xRange = xMax - xMin;
+  for (i = 0; i <= xRange / 10; i++) {
+    ctx.fillText(xMin + i * 10,
+                 i / (xRange / 10) * gWidth + gLeft - cLeftMargin / 5,
                  gBottom + cBottomMargin / 2);
+
+    // draw vertical reference lines
+    ctx.beginPath();
+    ctx.moveTo(i / (xRange / 10) * gWidth + gLeft, gTop);
+    ctx.lineTo(i / (xRange / 10) * gWidth + gLeft, gBottom);
+    ctx.stroke();
   }
 }
 
@@ -152,7 +157,7 @@ function reference(ctx, xData, yData, gLeft, gRight, gBottom, gTop, gWidth,
 /**
  * transforms data to canvas coordinates in given direction, returns array
  */
-function transform(array, dir, max, min) {
+function transform(array, dir, min, max) {
   let c = [];
 
   for (let elem of array) {

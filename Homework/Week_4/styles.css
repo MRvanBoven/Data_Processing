@@ -1,3 +1,12 @@
+/**
+ * This file extends script.js.
+ *
+ * The file defines several CSS styles to be used in the script.
+ *
+ * Name: Maud van Boven
+ * Student ID: 12474673
+ */
+
 /* define axis styles */
 .axis path, .axis line {
     fill: none;
@@ -13,12 +22,16 @@
     stroke: none;
 }
 
+.label {
+    font-size: 12px;
+}
+
 /* define tooltip style */
 /* source: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369 */
 div.tooltip {
     position: absolute;
     text-align: center;
-    width: 60px;
+    width: 50px;
     height: 14px;
     padding: 2px;
     font: 12px sans-serif;

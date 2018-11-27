@@ -14,7 +14,7 @@ var w = 700;
 var h = 600;
 var barPadding = 3;
 var y0Padding = 10;
-var margins = {top: 10, bottom: 50, left: 70, right: 0},
+var margins = {top: 30, bottom: 50, left: 70, right: 0},
     width = w - margins.left - margins.right,
     height = h - margins.top - margins.bottom;
 
@@ -32,10 +32,9 @@ d3.select("body")
   .html("By: Maud van Boven <br> Student ID: 1247467");
 d3.select("body")
   .append("p")
-  .attr("class", "text")
   .html("Through how many years of time did each incarnation of the Doctor " +
         "actually travel? David McCandless and associates created a whole" +
-        " data set concerning this question, as he explained in " +
+        " data set concerning this question, as David explains in " +
         "<a href=" +
         "https://www.theguardian.com/news/datablog/2010/aug/20/" +
         "doctor-who-time-travel-information-is-beautiful" +
@@ -73,11 +72,10 @@ d3.json(inFile, function(data) {
                 .attr("class", "tooltip")
                 .style("opacity", 0);
 
-    // labels(travels, yScale, barWidth);
-
-    bars(travels, yScale, barWidth, tip); //tip
-
+    // make bar chart
+    bars(travels, yScale, barWidth, tip);
     axes(xScale, yScale, y0Scale);
+    title();
 });
 
 
@@ -244,4 +242,19 @@ function scale(xData, yData, barWidth) {
                           .range([y0Padding]);
 
     return [xScale, yScale, y0Scale];
+}
+
+
+/**
+ * Creates a title above an svg element.
+ */
+function title() {
+    // define scale for x Axis
+    // add label y axis
+    svg.append("text")
+       .attr("class", "chart title")
+       .attr("x", margins.left + width / 2)
+       .attr("y", margins.top / 2)
+       .style("text-anchor", "middle")
+       .text("Time Travelled by All Past Incarnations of the Doctor")
 }

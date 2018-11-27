@@ -14,7 +14,6 @@ var w = 700;
 var h = 600;
 var barPadding = 3;
 var y0Padding = 10;
-var topHTML = 273;
 var margins = {top: 10, bottom: 50, left: 70, right: 0},
     width = w - margins.left - margins.right,
     height = h - margins.top - margins.bottom;
@@ -37,7 +36,8 @@ d3.select("body")
   .html("Through how many years of time did each incarnation of the Doctor " +
         "actually travel? David McCandless and associates created a whole" +
         " data set concerning this question, as he explained in " +
-        "<a href=" + "https://www.theguardian.com/news/datablog/2010/aug/20/" +
+        "<a href=" +
+        "https://www.theguardian.com/news/datablog/2010/aug/20/" +
         "doctor-who-time-travel-information-is-beautiful" +
         ">the Guardian. </a>" +
         "In the bar chart below, the cumulative total of all years travelled " +
@@ -103,7 +103,8 @@ function axes(xScale, yScale, y0Scale) {
     svg.append("g")
        .attr("class", "x axis")
        .attr("transform", "translate(" + margins.left + ","
-                                     + (height + margins.top + y0Padding + barPadding)
+                                     + (height + margins.top + y0Padding
+                                        + barPadding)
                                      + ")")
        .call(xAxis);
 
@@ -171,14 +172,13 @@ function bars(yData, yScale, barWidth, tip) { //tip
              return "rgb(0, 0," + (Math.log10(d)) * 18 + ")";
          })
         .on("mouseover", function(d, i) {
-             var x = margins.left + i * width / yData.length + barWidth / 2
-                     - 18;
+             var x = margins.left + i * width / yData.length + 1;
              var y = 0;
              if (d !== 0) {
-                 y = topHTML + yScale(d) - barPadding;
+                 y = - yScale(d) + h + y0Padding + 15;
              }
              else {
-                 y = topHTML + height + margins.top + y0Padding - barPadding;
+                 y = y0Padding + barPadding + margins.bottom + barPadding;
              }
 
              d3.select(this)
@@ -192,7 +192,7 @@ function bars(yData, yScale, barWidth, tip) { //tip
                 .style("opacity", .9);
              tip.html(scientific(d))
                 .style("left", x + "px")
-                .style("top", y + "px");
+                .style("bottom", y + "px");
          })
         .on("mouseout", function(d) {
              d3.select(this)

@@ -2,16 +2,31 @@ body {
     font-family: sans-serif;
 }
 
-div.chart {
+.axis path, .axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
 
+.axis text {
+    font-size: 11px;
+}
+
+.x.axis path {
+    stroke: none;
+}
+
+.label {
+    font-size: 12px;
 }
 
 h2.title {
-    width: 450px;
+    width: 700px;
     height: 50px;
     text-transform: uppercase;
     font-size: 50px;
-    background: linear-gradient(to right, red, orange, yellow, green, cyan, blue, violet);
+    /* background: linear-gradient(to right, red, orange, yellow, green, cyan, blue, violet); */
+    background: linear-gradient(to right, blue, cyan, blue, violet);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }

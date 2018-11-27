@@ -1,3 +1,14 @@
+/**
+ * This file extends index.html.
+ *
+ * The file loads a JSON file into D3 and creates an interactive bar chart using
+ * the data from this file.
+ *
+ * Name: Maud van Boven
+ * Student ID: 12474673
+ */
+
+
 // define svg width and height as global variables
 var w = 700;
 var h = 600;
@@ -23,9 +34,12 @@ d3.select("body")
 d3.select("body")
   .append("p")
   .attr("class", "text")
-  .text("Through how many years of time did each incarnation of the Doctor " +
-        "actually travel? Name and co created a whole data set concerning " +
-        "this question, as they/he explained in the Guardian/here (= link). " +
+  .html("Through how many years of time did each incarnation of the Doctor " +
+        "actually travel? David McCandless and associates created a whole" +
+        " data set concerning this question, as he explained in " +
+        "<a href=" + "https://www.theguardian.com/news/datablog/2010/aug/20/" +
+        "doctor-who-time-travel-information-is-beautiful" +
+        ">the Guardian. </a>" +
         "In the bar chart below, the cumulative total of all years travelled " +
         "through by each incarnation of the Doctor is shown. Bear in mind " +
         "that the y axis has a logarithmic scale! You can hover over the " +
@@ -151,7 +165,8 @@ function bars(yData, yScale, barWidth, tip) { //tip
              return "rgb(0, 0," + (Math.log10(d)) * 18 + ")";
          })
         .on("mouseover", function(d, i) {
-             var x = margins.left + i * width / yData.length;
+             var x = margins.left + i * width / yData.length + barWidth / 2
+                     - 18;
              var y = 0;
              if (d !== 0) {
                  y = topHTML + yScale(d) - barPadding;
@@ -159,7 +174,6 @@ function bars(yData, yScale, barWidth, tip) { //tip
              else {
                  y = topHTML + height + margins.top + y0Padding - barPadding;
              }
-            console.log(y);
 
              d3.select(this)
                .style("fill", function(d) {

@@ -39,7 +39,8 @@ d3.select("body")
         "<a href=" +
         "https://www.theguardian.com/news/datablog/2010/aug/20/" +
         "doctor-who-time-travel-information-is-beautiful" +
-        ">the Guardian. </a>" +
+        ">the Guardian</a>" +
+        ". " +
         "In the bar chart below, the cumulative total of all years travelled " +
         "through by each incarnation of the Doctor is shown. Bear in mind " +
         "that the y axis has a logarithmic scale! You can hover over the " +

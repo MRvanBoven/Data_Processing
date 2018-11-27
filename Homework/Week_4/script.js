@@ -80,6 +80,9 @@ d3.json(inFile, function(data) {
 });
 
 
+/**
+ * Defines, creates and adds labels to the x and y axis.
+ */
 function axes(xScale, yScale, y0Scale) {
     // define x axis
     var xAxis = d3.svg.axis()
@@ -137,6 +140,9 @@ function axes(xScale, yScale, y0Scale) {
 }
 
 
+/**
+ * Defines and creates the bars for the bar chart and all of their properties.
+ */
 function bars(yData, yScale, barWidth, tip) { //tip
     // create bars for bar chart
     var bars = svg.selectAll("rect")
@@ -184,7 +190,7 @@ function bars(yData, yScale, barWidth, tip) { //tip
              tip.transition()
                 .duration(200)
                 .style("opacity", .9);
-             tip.html(label(d))
+             tip.html(scientific(d))
                 .style("left", x + "px")
                 .style("top", y + "px");
          })
@@ -201,16 +207,23 @@ function bars(yData, yScale, barWidth, tip) { //tip
 }
 
 
-function label(d) {
+/**
+ * Converts given int to a scientific notation string. Returns that string.
+ */
+function scientific(int) {
     // convert d to scientific power notation with "e"
-    if (d !== 0) {
-        var log = Math.floor(Math.log10(d));
-        return "<span>" + (d / Math.pow(10, log)).toFixed(2) + "e" + log + "</span>"
+    if (int !== 0) {
+        var log = Math.floor(Math.log10(int));
+        return "<span>" + (int / Math.pow(10, log)).toFixed(2) + "e" + log
+               + "</span>"
     }
-    return "<span>" + d.toFixed(2) + "</span>";
+    return "<span>" + int.toFixed(2) + "</span>";
 }
 
 
+/**
+ * Defines scales for the x and y axis.
+ */
 function scale(xData, yData, barWidth) {
     // define scale for x Axis
     var xScale = d3.scale.ordinal()

@@ -256,5 +256,5 @@ function title() {
        .attr("x", margins.left + width / 2)
        .attr("y", margins.top / 2)
        .style("text-anchor", "middle")
-       .text("Time Travelled by All Past Incarnations of the Doctor")
+       .text("Time Travelled by Past Incarnations of the Doctor")
 }

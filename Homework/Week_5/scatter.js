@@ -21,8 +21,8 @@ function getData() {
     // if JSONS are read in successfully, let them be converted to easier format
     Promise.all(requests)
            .then(function(response) {
-                data1 = transformResponse1(response[0]);
-                data2 = transformResponse2(response[1]);
+                data1 = transformResponse(response[0]);
+                data2 = transformResponse(response[1]);
                 console.log(data1);
                 console.log(data2);
             })
@@ -35,7 +35,7 @@ function getData() {
 /**
  * Transforms SDMX-JSON to easier operable format and returns that format.
  */
-function transformResponse1(data) {
+function transformResponse(data) {
     // create array to save all data series in
     let dataArray = [];
 

@@ -61,7 +61,7 @@ function scatterPlot(dataPoints) {
     // define svg and graph dimensions
     let w = 750;
     let h = 600;
-    let margins = {top: 30, bottom: 50, left: 70, right: 10},
+    let margins = {top: 30, bottom: 50, left: 70, right: 20},
         width = w - margins.left - margins.right,
         height = h - margins.top - margins.bottom;
     let dimensions = {margins: margins, width: width, height: height};
@@ -90,7 +90,14 @@ function scatterPlot(dataPoints) {
     // make axes
     axes(svg, xScale, yScale, dimensions);
 
-    let year = 2007;
+    // add slider
+    let slider = makeSlider(svg, dataPoints, dimensions);
+
+    // d3.select("div#slider")
+    // let year = slider.value();
+
+    let year = slider.value();
+
     // add data points to plot
     addDots(svg, dataPoints, year, xScale, yScale, counColors);
 
@@ -287,6 +294,53 @@ function scale(xData, yData, dimensions) {
                    .nice();
 
     return [xScale, yScale];
+}
+
+
+/**
+ * Makes a slider via which the user can choose the year of which data is shown.
+ */
+function makeSlider(svg, data, dims) {
+    // define slider svg dimensions
+    let h = 100;
+    let w = dims.width + dims.margins.left + dims.margins.right;
+
+    let years = Object.keys(data).map(x => parseInt(x));
+    console.log(years);
+
+    let showYear = d3.min(years);
+
+    let slider = d3.sliderHorizontal()
+                   .min(d3.min(years))
+                   .max(d3.max(years))
+                   .step(1)
+                   .width(dims.width)
+                   .tickValues(years)
+                   .tickFormat(d3.format("d"))
+                   .on("onchange", function(year) {
+                      update(year);
+                    });
+
+    // add slider svg to DOM and remember its reference
+    var sliderGroup = d3.select("body")
+                        .append("div")
+                        .attr("id", "slider")
+                        .append("svg")
+                        .attr("height", h)
+                        .attr("width", w)
+                        .append("g")
+                        .attr("transform", "translate(" + dims.margins.left
+                                                        + ","
+                                                        + h / 2
+                                                        + ")")
+                        .call(slider);
+
+    sliderGroup.append("text")
+               .attr("x", - dims.margins.left)
+               .attr("y", h / 10)
+               .text("YEAR");
+
+    return slider;
 }
 
 

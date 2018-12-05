@@ -1,4 +1,16 @@
 /**
+ * This file extends scatter.html.
+ *
+ * The file gets two JSON files via an API request, loads them into D3, converts
+ * them to a usable format, and then uses their data to make a scatter plot,
+ * that can be updated to show data of the year chosen by the user.
+ *
+ * Name: Maud van Boven
+ * Student ID: 12474673
+ */
+
+
+/**
  * Get data sets through API requests, reads in JSONS, and if successful
  * initialises main function.
  */
@@ -32,9 +44,6 @@ function main(response) {
     let data1 = transformResponse(response[0]);
     let data2 = transformResponse(response[1]);
 
-    console.log(data1);
-    console.log(data2);
-
     // convert dataSets to lists of data points per year
     let dataPoints = transformData(data1, data2);
 
@@ -42,6 +51,51 @@ function main(response) {
 
     // make a scatter plot
     scatterPlot(dataPoints);
+}
+
+
+/**
+ * Makes a scatter plot with given data points.
+ */
+function scatterPlot(dataPoints) {
+    // define svg and graph dimensions
+    let w = 750;
+    let h = 600;
+    let margins = {top: 30, bottom: 50, left: 70, right: 10},
+        width = w - margins.left - margins.right,
+        height = h - margins.top - margins.bottom;
+    let dimensions = {margins: margins, width: width, height: height};
+
+    // define colours to be used in plot (to mark countries)
+    let colors = ["#020F33", "#132B94", "#688AFF", "#FFC0AD", "#FF7850",
+                  "#6F210A"];
+
+    // add SVG to DOM and remember its reference
+    let svg = d3.select("body")
+                .append("svg")
+                .attr("height", h)
+                .attr("width", w);
+
+    // make arrays of all x, y and dict with country values and their colors
+    let varStructs = makeVarStructs(dataPoints, colors);
+    let counColors = varStructs[0],
+        xData = varStructs[1],
+        yData = varStructs[2];
+
+    // define scales for bar chart
+    let scales = scale(xData, yData, dimensions);
+    let xScale = scales[0],
+        yScale = scales[1];
+
+    // make axes
+    axes(svg, xScale, yScale, dimensions);
+
+    let year = 2007;
+    // add data points to plot
+    addDots(svg, dataPoints, year, xScale, yScale, counColors);
+
+    // add a legend linking the colors of the dots to the countries
+    legend(svg, counColors, dimensions);
 }
 
 
@@ -66,39 +120,6 @@ function addDots(svg, dataPoints, year, xScale, yScale, counColors) {
         .style("fill", function(d) {
              return counColors[d[0]];
          });
-        // .on("mouseover", function(d, i) {
-        //      var x = margins.left + i * width / yData.length + 1;
-        //      var y = 0;
-        //      if (d !== 0) {
-        //          y = - yScale(d) + h + y0Padding + 15;
-        //      }
-        //      else {
-        //          y = y0Padding + barPadding + margins.bottom + barPadding;
-        //      }
-        //
-        //      d3.select(this)
-        //        .style("fill", function(d) {
-        //             return "rgb(" + (Math.log10(d)) * 15 + ", 0,"
-        //                        + (Math.log10(d)) * 18 + ")";
-        //         });
-        //
-        //      tip.transition()
-        //         .duration(200)
-        //         .style("opacity", .9);
-        //      tip.html(scientific(d))
-        //         .style("left", x + "px")
-        //         .style("bottom", y + "px");
-        //  })
-        // .on("mouseout", function(d) {
-        //      d3.select(this)
-        //        .style("fill", function(d) {
-        //             return "rgb(0, 0," + (Math.log10(d)) * 18 + ")";
-        //         });
-        //
-        //      tip.transition()
-        //         .duration(500)
-        //         .style("opacity", 0);
-        //  });
 }
 
 
@@ -155,34 +176,68 @@ function axes(svg, xScale, yScale, dims) {
 /**
  * Adds a legend to the given svg element.
  */
-function legend(svg, counColors) {
+function legend(svg, counColors, dims) {
+    // define legend dimensions
+    let w = 145;
+    let h = 150;
+    let r = 8;
+    let legMargins = {top: 20, bottom: 20, left: 20, right: 20},
+        legWidth = w - legMargins.left - legMargins.right,
+        legHeight = h - legMargins.top - legMargins.bottom;
+
+    // get list of countries
+    couns = Object.keys(counColors);
+
+    // add legend to svg
     let legend = svg.append("g")
-                    .attr("x", 10)
-                    .attr("y", 10)
-                    .attr("width", 100)
-                    .attr("height", 100)
-                    // .attr("class", "legend")
-                    .attr("transform", "translate(" + 5
+                    .attr("width", w)
+                    .attr("height", h)
+                    .attr("class", "legend")
+                    .attr("transform", "translate(" + (dims.margins.left + 20)
                                                     + ","
-                                                    + 5
+                                                    + (dims.margins.top
+                                                       + dims.height
+                                                       - h - 20)
                                                     +")");
 
+    // draw rectangle around legend
     legend.append("rect")
-          // .attr("x", 10)
-          // .attr("y", 10)
-          .attr("width", 100)
-          .attr("height", 100)
+          .attr("width", w)
+          .attr("height", h)
           .style("stroke-width", 1)
           .style("stroke", "black")
           .style("fill", "none");
 
-    legend.selectAll("circle")
-          .data(counColors)
+    // add country data to legend
+    legend.selectAll('g')
+          .data(couns)
           .enter()
-          .append("circle")
-          // .attr("cx", 10)
-          // .attr("cy", 10)
-          .attr("r", 8);
+          .append('g')
+          .each(function(d, i) {
+              let g = d3.select(this);
+
+              // add circles in the color representing the country
+              g.append("circle")
+               .attr("cx", legMargins.left)
+               .attr("cy", function(d) {
+                    return legMargins.top + i * legHeight / (couns.length - 1);
+                })
+               .attr("r", r)
+               .style("fill", function(d) {
+                     return counColors[d];
+                });
+
+              // add the country in text
+              g.append("text")
+               .attr("x", legMargins.left + 20)
+               .attr("y", function(d) {
+                    return legMargins.top + i * legHeight / (couns.length - 1)
+                           + 0.6 * r;
+                })
+               .text(function (d) {
+                    return d;
+                });
+          });
 }
 
 
@@ -192,6 +247,7 @@ function legend(svg, counColors) {
  * Returns all made structures.
  */
 function makeVarStructs(dataPoints, colors) {
+    console.log("!!!!MAPPING?????");
     // initialise arrays to save data values in
     let xData = [],
         yData = [],
@@ -231,54 +287,6 @@ function scale(xData, yData, dimensions) {
                    .nice();
 
     return [xScale, yScale];
-}
-
-
-/**
- * Makes a scatter plot with given data points.
- */
-function scatterPlot(dataPoints) {
-    // define svg and graph dimensions
-    let w = 750;
-    let h = 600;
-    let margins = {top: 30, bottom: 50, left: 70, right: 10},
-        width = w - margins.left - margins.right,
-        height = h - margins.top - margins.bottom;
-    let dimensions = {margins: margins, width: width, height: height};
-
-    // define colours to be used in plot (to mark countries)
-    let colors = ["#020F33", "#132B94", "#688AFF", "#FFC0AD", "#FF7850",
-                  "#6F210A"];
-
-    // add SVG to DOM and remember its reference
-    let svg = d3.select("body")
-                .append("svg")
-                .attr("height", h)
-                .attr("width", w);
-
-    // make arrays of all x, y and dict with country values and their colors
-    let varStructs = makeVarStructs(dataPoints, colors);
-    let counColors = varStructs[0],
-        xData = varStructs[1],
-        yData = varStructs[2];
-
-    console.log("countries");
-    console.log(counColors);
-
-    // define scales for bar chart
-    let scales = scale(xData, yData, dimensions);
-    let xScale = scales[0],
-        yScale = scales[1];
-
-    // make axes
-    axes(svg, xScale, yScale, dimensions);
-
-    let year = 2007;
-    // add data points to plot
-    addDots(svg, dataPoints, year, xScale, yScale, counColors);
-
-    // add a legend linking the colors of the dots to the countries
-    legend(svg, counColors);
 }
 
 

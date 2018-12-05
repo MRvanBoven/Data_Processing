@@ -1,5 +1,5 @@
 /**
- * This file extends script.js.
+ * This file extends scatter.js.
  *
  * The file defines several CSS styles to be used in the script.
  *
@@ -7,50 +7,42 @@
  * Student ID: 12474673
  */
 
+
 /* define axis styles */
 .axis path, .axis line {
     fill: none;
     stroke: black;
     shape-rendering: crispEdges;
 }
-
 .axis text {
     font-size: 11px;
 }
-
 .x.axis path {
     stroke: none;
 }
-
 .label {
     font-size: 12px;
 }
 
+
+/* define chart title style */
 .chart.title {
     font-size: 16px;
     font-weight: bold;
 }
 
-/* define tooltip style */
-/* source: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369 */
-div.tooltip {
-    position: relative;
-    text-align: center;
-    width: 50px;
-    height: 14px;
-    padding: 2px;
-    font: 12px sans-serif;
-    background: lightsteelblue;
-    border: 0px;
-    border-radius: 8px;
-    pointer-events: none;
+
+/* define legend style */
+.legend {
+    font-size: 12px;
+    font-variant: small-caps;
 }
+
 
 /* define general HTML elements and classes styles */
 body {
     font-family: sans-serif;
 }
-
 h2.title {
     width: 150px;
     height: 50px;
@@ -60,7 +52,6 @@ h2.title {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-
 p.student {
     font-variant: small-caps;
     font-weight: bold;

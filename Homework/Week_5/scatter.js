@@ -3,7 +3,7 @@
  *
  * The file gets two JSON files via an API request, loads them into D3, converts
  * them to a usable format, and then uses their data to make a scatter plot,
- * that can be updated to show data of the year chosen by the user.
+ * that can be updated to show data of a year chosen by the user, via a slider.
  *
  * Name: Maud van Boven
  * Student ID: 12474673
@@ -16,11 +16,8 @@
  */
 window.onload = function() {
     // get data sets (JSON) through API requests
-    // let womenInScience = "http://stats.oecd.org/SDMX-JSON/data/MSTI_PUB/TH_WRXRS.FRA+DEU+KOR+NLD+PRT+GBR/all?startTime=2007&endTime=2015"
-    // let consConf = "http://stats.oecd.org/SDMX-JSON/data/HH_DASH/FRA+DEU+KOR+NLD+PRT+GBR.COCONF.A/all?startTime=2007&endTime=2015"
-
-    let womenInScience = "women.json"
-    let consConf = "consConf.json"
+    let womenInScience = "http://stats.oecd.org/SDMX-JSON/data/MSTI_PUB/TH_WRXRS.FRA+DEU+KOR+NLD+PRT+GBR/all?startTime=2007&endTime=2015"
+    let consConf = "http://stats.oecd.org/SDMX-JSON/data/HH_DASH/FRA+DEU+KOR+NLD+PRT+GBR.COCONF.A/all?startTime=2007&endTime=2015"
 
     // request to read in JSONs
     let requests = [d3.json(womenInScience), d3.json(consConf)];
@@ -47,8 +44,6 @@ function main(response) {
     // convert dataSets to lists of data points per year
     let dataPoints = transformData(data1, data2);
 
-    console.log(dataPoints);
-
     // make a scatter plot
     scatterPlot(dataPoints);
 }
@@ -61,13 +56,13 @@ function scatterPlot(dataPoints) {
     // define svg and graph dimensions
     let w = 750;
     let h = 600;
-    let margins = {top: 30, bottom: 50, left: 70, right: 20},
+    let margins = {top: 100, bottom: 50, left: 70, right: 20},
         width = w - margins.left - margins.right,
         height = h - margins.top - margins.bottom;
     let dimensions = {margins: margins, width: width, height: height};
 
     // define colours to be used in plot (to mark countries)
-    let colors = ["#020F33", "#132B94", "#688AFF", "#FFC0AD", "#FF7850",
+    let colors = ["#020F33", "#1937B7", "#7493FF", "#FFC0AD", "#FF7850",
                   "#6F210A"];
 
     // add SVG to DOM and remember its reference
@@ -90,19 +85,19 @@ function scatterPlot(dataPoints) {
     // make axes
     axes(svg, xScale, yScale, dimensions);
 
+    // add data points from first year in dataPoints to plot
+    addDots(svg, dataPoints, d3.min(Object.keys(dataPoints)), xScale, yScale,
+            counColors);
+
     // add slider
-    let slider = makeSlider(svg, dataPoints, dimensions);
-
-    // d3.select("div#slider")
-    // let year = slider.value();
-
-    let year = slider.value();
-
-    // add data points to plot
-    addDots(svg, dataPoints, year, xScale, yScale, counColors);
+    let slider = makeSlider(svg, dataPoints, xScale, yScale, counColors,
+                            dimensions);
 
     // add a legend linking the colors of the dots to the countries
     legend(svg, counColors, dimensions);
+
+    // add a graph title
+    title(svg, dimensions);
 }
 
 
@@ -111,7 +106,7 @@ function scatterPlot(dataPoints) {
  */
 function addDots(svg, dataPoints, year, xScale, yScale, counColors) {
     // create dots for scatter plot
-    let dots = svg.selectAll("circle")
+    let dots = svg.selectAll("circle:not(.legendCirc)")
                   .data(dataPoints[year])
                   .enter()
                   .append("circle");
@@ -145,20 +140,14 @@ function axes(svg, xScale, yScale, dims) {
     // create x axis
     svg.append("g")
        .attr("class", "axis")
-       .attr("transform", "translate(" + dims.margins.left
-                                       + ","
-                                       + (dims.margins.top
-                                          + dims.height)
-                                       + ")")
+       .attr("transform", "translate(0," + (dims.margins.top + dims.height)
+                                         + ")")
        .call(xAxis);
 
     // create y axis
     svg.append("g")
        .attr("class", "axis")
-       .attr("transform", "translate(" + dims.margins.left
-                                       + ","
-                                       + dims.margins.top
-                                       + ")")
+       .attr("transform", "translate(" + dims.margins.left + ", 0)")
        .call(yAxis);
 
     // add label x axis
@@ -167,7 +156,7 @@ function axes(svg, xScale, yScale, dims) {
        .attr("x", dims.margins.left + dims.width / 2)
        .attr("y", dims.margins.top + dims.height + dims.margins.bottom)
        .style("text-anchor", "middle")
-       .text("Women in science (% headcount)");
+       .text("Women in science (% of total headcount)");
 
     // add label y axis
     svg.append("text")
@@ -176,7 +165,7 @@ function axes(svg, xScale, yScale, dims) {
        .attr("x", - dims.margins.top - dims.height / 2)
        .attr("y", dims.margins.left / 5)
        .style("text-anchor", "middle")
-       .text("Consumer confidence (...)");
+       .text("Consumer confidence index");
 }
 
 
@@ -216,7 +205,7 @@ function legend(svg, counColors, dims) {
           .style("fill", "none");
 
     // add country data to legend
-    legend.selectAll('g')
+    legend.selectAll("g")
           .data(couns)
           .enter()
           .append('g')
@@ -225,6 +214,7 @@ function legend(svg, counColors, dims) {
 
               // add circles in the color representing the country
               g.append("circle")
+               .attr("class", "legendCirc")
                .attr("cx", legMargins.left)
                .attr("cy", function(d) {
                     return legMargins.top + i * legHeight / (couns.length - 1);
@@ -249,13 +239,58 @@ function legend(svg, counColors, dims) {
 
 
 /**
+ * Makes a slider via which the user can choose the year of which data is shown.
+ */
+function makeSlider(svg, dataPoints, xScale, yScale, counColors, dims) {
+    // define slider svg dimensions
+    let h = 100;
+    let w = dims.width + dims.margins.left + dims.margins.right;
+
+    // get array of data for slider values
+    let years = Object.keys(dataPoints).map(x => parseInt(x));
+
+    // define slider
+    let slider = d3.sliderHorizontal()
+                   .min(d3.min(years))
+                   .max(d3.max(years))
+                   .step(1)
+                   .width(dims.width)
+                   .tickValues(years)
+                   .tickFormat(d3.format("d"))
+                   .on("onchange", function(year) {
+                      return update(svg, dataPoints, year, xScale, yScale,
+                                    counColors);
+                    });
+
+    // add slider to DOM
+    let sliderDiv = d3.select("body")
+                      .append("div")
+                      .attr("class", "sliderClass");
+
+    sliderDiv.append("svg")
+             .attr("height", h)
+             .attr("width", w)
+             .append("g")
+             .attr("transform", "translate(" + dims.margins.left
+                                             + ","
+                                             + h / 2
+                                             + ")")
+             .call(slider);
+
+    // add text to explain variable slider represents
+    sliderDiv.append("text")
+             .attr("class", "slider text")
+             .text("Year");
+}
+
+
+/**
  * Makes arrays of the x and y values of all data points in given set. Also
  * makes object with all different country values matched to a color.
  * Returns all made structures.
  */
 function makeVarStructs(dataPoints, colors) {
-    console.log("!!!!MAPPING?????");
-    // initialise arrays to save data values in
+    // initialise structures to save data values in
     let xData = [],
         yData = [],
         counColors = {};
@@ -280,17 +315,19 @@ function makeVarStructs(dataPoints, colors) {
 /**
  * Defines scales for the x and y axis.
  */
-function scale(xData, yData, dimensions) {
+function scale(xData, yData, dims) {
     // define scale for x Axis
     let xScale = d3.scaleLinear()
                    .domain([0, d3.max(xData)])
-                   .rangeRound([0, dimensions.width])
+                   .rangeRound([dims.margins.left,
+                                dims.margins.left + dims.width])
                    .nice();
 
     // define logarithmic scale for y axis
     let yScale = d3.scaleLinear()
                    .domain([0, d3.max(yData)])
-                   .rangeRound([dimensions.height, 0])
+                   .rangeRound([dims.margins.top + dims.height,
+                                dims.margins.top])
                    .nice();
 
     return [xScale, yScale];
@@ -298,49 +335,16 @@ function scale(xData, yData, dimensions) {
 
 
 /**
- * Makes a slider via which the user can choose the year of which data is shown.
+ * Creates a title above given svg element.
  */
-function makeSlider(svg, data, dims) {
-    // define slider svg dimensions
-    let h = 100;
-    let w = dims.width + dims.margins.left + dims.margins.right;
-
-    let years = Object.keys(data).map(x => parseInt(x));
-    console.log(years);
-
-    let showYear = d3.min(years);
-
-    let slider = d3.sliderHorizontal()
-                   .min(d3.min(years))
-                   .max(d3.max(years))
-                   .step(1)
-                   .width(dims.width)
-                   .tickValues(years)
-                   .tickFormat(d3.format("d"))
-                   .on("onchange", function(year) {
-                      update(year);
-                    });
-
-    // add slider svg to DOM and remember its reference
-    var sliderGroup = d3.select("body")
-                        .append("div")
-                        .attr("id", "slider")
-                        .append("svg")
-                        .attr("height", h)
-                        .attr("width", w)
-                        .append("g")
-                        .attr("transform", "translate(" + dims.margins.left
-                                                        + ","
-                                                        + h / 2
-                                                        + ")")
-                        .call(slider);
-
-    sliderGroup.append("text")
-               .attr("x", - dims.margins.left)
-               .attr("y", h / 10)
-               .text("YEAR");
-
-    return slider;
+function title(svg, dims) {
+    svg.append("text")
+       .attr("class", "chart title")
+       .attr("x", dims.margins.left + dims.width / 2)
+       .attr("y", dims.margins.top / 2)
+       .style("text-anchor", "middle")
+       .text("Consumer Confidence Index against Percentage Women In Science, \
+              over the Years")
 }
 
 
@@ -461,4 +465,16 @@ function transformResponse(data) {
     });
 
     return dataArray;
+}
+
+
+/**
+ * Updates scatter plot to show data points of given year.
+ */
+function update(svg, dataPoints, year, xScale, yScale, counColors) {
+    // remove all existing data points from plot
+    svg.selectAll("circle:not(.legendCirc)").remove();
+
+    // add data points to plot
+    addDots(svg, dataPoints, year, xScale, yScale, counColors);
 }

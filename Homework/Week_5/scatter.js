@@ -54,7 +54,7 @@ function main(response) {
  */
 function scatterPlot(dataPoints) {
     // define svg and graph dimensions
-    let w = 750;
+    let w = 850;
     let h = 600;
     let margins = {top: 100, bottom: 50, left: 70, right: 20},
         width = w - margins.left - margins.right,
@@ -65,11 +65,19 @@ function scatterPlot(dataPoints) {
     let colors = ["#020F33", "#1937B7", "#7493FF", "#FFC0AD", "#FF7850",
                   "#6F210A"];
 
-    // add SVG to DOM and remember its reference
-    let svg = d3.select("body")
-                .append("svg")
-                .attr("height", h)
-                .attr("width", w);
+    // add divisions for the slider and plot to the DOM
+    let plotDiv = d3.select("body")
+                    .append("div")
+                    .attr("id", "plotDiv")
+    let sliderDiv = d3.select("body")
+                      .append("div")
+                      .attr("id", "sliderDiv")
+
+    // add SVG element for plot to DOM and remember its reference
+    let svg = plotDiv.append("svg")
+                     .attr("id", "plotSvg")
+                     .attr("height", h)
+                     .attr("width", w);
 
     // make arrays of all x, y and dict with country values and their colors
     let varStructs = makeVarStructs(dataPoints, colors);
@@ -90,14 +98,13 @@ function scatterPlot(dataPoints) {
             counColors);
 
     // add slider
-    let slider = makeSlider(svg, dataPoints, xScale, yScale, counColors,
-                            dimensions);
+    makeSlider(svg, dataPoints, xScale, yScale, counColors, dimensions);
 
     // add a legend linking the colors of the dots to the countries
     legend(svg, counColors, dimensions);
 
-    // add a graph title
-    title(svg, dimensions);
+    // add a graph title to plot
+    title("plotSvg", dimensions);
 }
 
 
@@ -263,8 +270,7 @@ function makeSlider(svg, dataPoints, xScale, yScale, counColors, dims) {
                     });
 
     // add slider to DOM
-    let sliderDiv = d3.select("body")
-                      .append("div")
+    let sliderDiv = d3.select("#sliderDiv")
                       .attr("class", "sliderClass");
 
     sliderDiv.append("svg")
@@ -335,16 +341,17 @@ function scale(xData, yData, dims) {
 
 
 /**
- * Creates a title above given svg element.
+ * Creates a title above element with given id.
  */
-function title(svg, dims) {
-    svg.append("text")
-       .attr("class", "chart title")
-       .attr("x", dims.margins.left + dims.width / 2)
-       .attr("y", dims.margins.top / 2)
-       .style("text-anchor", "middle")
-       .text("Consumer Confidence Index against Percentage Women In Science, \
-              over the Years")
+function title(id, dims) {
+    d3.select(`#${id}`)
+      .append("text")
+      .attr("class", "chart title")
+      .attr("x", dims.margins.left + dims.width / 2)
+      .attr("y", dims.margins.top / 2)
+      .style("text-anchor", "middle")
+      .text("Consumer Confidence Index against Percentage Women In Science, \
+             over the Years")
 }
 
 

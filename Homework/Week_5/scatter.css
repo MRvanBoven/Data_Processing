@@ -38,19 +38,37 @@
     font-variant: small-caps;
 }
 
+/* define slider style */
+.sliderClass {
+    position: relative;
+}
+.slider.text {
+    position: absolute;
+    left: 0;
+    top: 38%;
+    background-color: #6f210a;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 3px;
+    mix-blend-mode: multiply;
+}
 
 /* define general HTML elements and classes styles */
 body {
     font-family: sans-serif;
 }
 h2.title {
-    width: 150px;
+    width: 385px;
     height: 50px;
     text-transform: uppercase;
     font-size: 50px;
-    background: linear-gradient(to right, blue, cyan, blue, violet);
+    background: linear-gradient(to right, #020f33, #1937b7, #7493ff, #ffc0ad, #ff7850, #6f210a);
+    -webkit-text-stroke-width: 6px;
+    -webkit-text-stroke-color: transparent;
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    -webkit-text-fill-color: white;
 }
 p.student {
     font-variant: small-caps;

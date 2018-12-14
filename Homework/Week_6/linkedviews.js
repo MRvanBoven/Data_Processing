@@ -29,9 +29,13 @@ window.onload = function() {
  */
 function main(episodes) {
     // convert data to useful format for making sunburst diagram
-    let nodeData = makeNodeData(episodes);
+    let nodeData = makeHierarchical(episodes);
 
     console.log(nodeData);
+
+    let nested = hierarchy(episodes);
+
+    console.log(nested);
 
     // define svg dimensions
     let w = (window.innerWidth - 20) / 2;
@@ -43,6 +47,8 @@ function main(episodes) {
     let dimensions = {w: w, h: h, margins: margins, width: width,
                       height: height, radius: radius};
 
+    let colors = d3.scaleOrdinal(d3.schemeCategory20);
+
     // add divisions for the sunbust diagram and donut chart
     let sunburstDiv = d3.select("body")
                         .append("div")
@@ -53,21 +59,87 @@ function main(episodes) {
                      .attr("class", "container")
                      .attr("id", "donut");
 
-    sunburst(nodeData, sunburstDiv, dimensions);
+    sunburst(nodeData, sunburstDiv, dimensions, colors);
 }
 
 
 /**
  * Makes a sunburst diagram of given data set.
+ * Made with help of and code from the tutorial found on
+ * https://bl.ocks.org/denjn5/e1cdbbe586ac31747b4a304f8f86efa5.
  */
-function sunburst(data, div, dims) {
+function sunburst(data, div, dims, colors) {
     // add SVG element for plot to DOM and remember its reference
     let svg = div.append("svg")
                  .attr("width", dims.w)
-                 .attr("height", dims.h)
-                 .append("g")
-                 .attr("transform", "translate(" + dims.w / 2 + ","
-                                                 + dims.h / 2 + ")");
+                 .attr("height", dims.h);
+
+    let g = svg.append("g")
+               .attr("width", dims.w)
+               .attr("height", dims.h)
+               .attr("transform", "translate(" + dims.w / 2 + ","
+                                               + dims.h / 2 + ")");
+
+    // set partition for the sunburst diagram
+    let partition = d3.partition()
+                      .size([2 * Math.PI, dims.radius]);
+
+    // find root node
+    let root = d3.hierarchy(data)
+                 .sum(function(d) {
+                     return d["size"];
+                  });
+
+    // calculate arc angle + width for each series, season and episode
+    partition(root);
+    let arc = d3.arc()
+                .startAngle(function(d) {
+                    return d.x0;
+                 })
+                .endAngle(function(d) {
+                    return d.x1;
+                 })
+                .innerRadius(function(d) {
+                    return d.y0;
+                 })
+                .outerRadius(function(d) {
+                    return d.y1;
+                 });
+
+    // add calculated arcs to SVG
+    g.selectAll("path")
+     .data(root.descendants())
+     .enter()
+     .append("path")
+     .attr("display", function(d) {
+         return d.depth ? null : "none";
+      })
+     .attr("d", arc)
+     .style("stroke", "#fff")
+     .style("fill", function(d) {
+         return colors(d);
+      });
+}
+
+
+/**
+ * Transforms given data set to hierarchical object, usable for making a
+ * sunburst diagram. Returns the made hierarchical data set.
+ */
+ function hierarchy(episodes) {
+    let nested = d3.nest()
+                   .key(function(d) {
+                       return d["series"];
+                    })
+                   .key(function(d) {
+                       return d["seasonNumber"]
+                    })
+                   .entries(episodes);
+    nested = {"key": "Star Trek Series",
+              "values": nested
+             };
+
+    return nested;
 }
 
 
@@ -75,7 +147,7 @@ function sunburst(data, div, dims) {
  * Transforms given data set to node formatted object, usable for making a
  * sunburst diagram. Returns the made node data set.
  */
-function makeNodeData(episodes) {
+function makeHierarchical(episodes) {
     // create object to save data in format usable for sunburst diagram
     let nodeData = {"title": "Star Trek Series",
                     "children": []

@@ -43,7 +43,22 @@ function main(episodes) {
     let dimensions = {w: w, h: h, margins: margins, width: width,
                       height: height, radius: radius};
 
-    let colors = d3.scaleOrdinal(d3.schemeCategory20);
+    // define color scale for coloring diagram
+    let colorScale = d3.scaleOrdinal()
+                      .domain(function() {
+                           let dom = [];
+                           for (let i = 0; i < nodeData["values"].length; i++) {
+                               dom.push(i);
+                           }
+                           return dom;
+                        })
+                       .range(["#56001E",
+                               "#980C1D",
+                               "#C34D3A",
+                               "#69A6C3",
+                               "#2A6E96",
+                               "#12477D",
+                               "#021A35"]);
 
     // add divisions for the sunbust diagram and donut chart
     let sunburstDiv = d3.select("body")
@@ -55,7 +70,7 @@ function main(episodes) {
                      .attr("class", "container")
                      .attr("id", "donut");
 
-    sunburst(nodeData, sunburstDiv, dimensions, colors);
+    sunburst(nodeData, sunburstDiv, dimensions, colorScale);
 }
 
 
@@ -64,7 +79,7 @@ function main(episodes) {
  * Made with help of and code from the tutorial found on
  * https://bl.ocks.org/denjn5/e1cdbbe586ac31747b4a304f8f86efa5.
  */
-function sunburst(data, div, dims, colors) {
+function sunburst(data, div, dims, colorScale) {
     // add SVG element for plot to DOM and remember its reference
     let svg = div.append("svg")
                  .attr("width", dims.w)
@@ -81,12 +96,12 @@ function sunburst(data, div, dims, colors) {
                       .size([2 * Math.PI, dims.radius]);
 
     // find root node
-    let root = d3.hierarchy(data)
+    let root = d3.hierarchy(data, function children(d) {
+                      return d["values"];
+                  })
                  .sum(function(d) {
-                     return d["size"];
+                     return d["value"];
                   });
-
-    console.log(root);
 
     // calculate arc angle + width for each series, season and episode
     partition(root);
@@ -115,116 +130,44 @@ function sunburst(data, div, dims, colors) {
      .attr("d", arc)
      .style("stroke", "#fff")
      .style("fill", function(d) {
-         return colors(d);
+         // give arcs same tone as 1st parent, lighter colors further from root
+         let original = d;
+         while (d.depth > 1) {
+             d = d.parent;
+         }
+         return d3.rgb(colorScale(d.data.key)).brighter(original.depth - 1);
       });
 }
 
 
 /**
- * Transforms given data set to node formatted object, usable for making a
- * sunburst diagram. Returns the made node data set.
+ * Transforms given data set to hierarchical object, usable for making a
+ * sunburst diagram. Returns the made hierarchical data set.
  */
-function makeHierarchical(episodes) {
-    // create object to save data in format usable for sunburst diagram
-    let nodeData = {"title": "Star Trek Series",
-                    "children": []
-                   };
-    let allSeries = nodeData["children"];
+ function makeHierarchical(episodes) {
+    // make a hierarchy by nesting first on series and then on season
+    let hierarchy = d3.nest()
+                      .key(function(d) {
+                          return d["series"];
+                       })
+                      .key(function(d) {
+                          return d["seasonNumber"];
+                       })
+                      .entries(episodes);
 
-    // add required data from all episodes in handy format to created object
-    for (let i = 0; i < episodes.length; i++) {
-        // remember all required data
-        let ep = episodes[i];
-        let title = ep["title"];
-        let series = ep["series"];
-        let season = `${series} season ${ep["seasonNumber"]}`;
-        let chars = ep["characters"];
+    // add value to episode nodes
+    hierarchy.forEach(function(d) {
+                  d["values"].forEach(function(d1) {
+                      d1["values"].forEach(function(d2) {
+                          d2["value"] = 1;
+                      });
+                  });
+              });
 
-        let added = false;
+    // add root node to hierarcical set
+    hierarchy = {"key": "Star Trek Series",
+                 "values": hierarchy
+                };
 
-        // if episode series already in object, add episode to that entry
-        for (let j = 0; j < allSeries.length; j++) {
-            if (series === allSeries[j]["title"]) {
-
-                // if episode season already in object, add to that entry
-                let allSeasons = allSeries[j]["children"];
-                for (let k = 0; k < allSeasons.length; k++) {
-                    if (season === allSeasons[k]["title"]) {
-                        allSeasons[k]["children"].push({"title": title,
-                                                        "characters": chars,
-                                                        "size": 1
-                                                       });
-                        added = true;
-                        break;
-                    }
-                }
-
-                // if episode season not in object, create entry and add episode
-                if (added === true) {
-                    break;
-                }
-                else {
-                    allSeasons.push({"title": season,
-                                     "children": [{"title": title,
-                                                   "characters": chars,
-                                                   "size": 1
-                                                  }]
-                                    });
-                    added = true;
-                    break;
-                }
-            }
-        }
-
-        // if episode series not in object, create entry, add season and episode
-        if (added === false) {
-            allSeries.push({"title": series,
-                            "children": [{"title": season,
-                                          "children": [{"title": title,
-                                                        "characters": chars,
-                                                        "size": 1
-                                                       }]
-                                         }]
-                            });
-        }
-    }
-
-    return nodeData;
+    return hierarchy;
 }
-
-
-// /**
-//  * Transforms given data set to hierarchical object, usable for making a
-//  * sunburst diagram. Returns the made hierarchical data set.
-//  */
-//  function makeHierarchical(episodes) {
-//     // make a hierarchy by nesting first on series and then on season
-//     let hierarchy = d3.nest()
-//                       .key(function(d) {
-//                           return d["series"];
-//                        })
-//                       .key(function(d) {
-//                           return d["seasonNumber"];
-//                        })
-//                       // .key(function(d) {
-//                       //     return d["episodeNumber"];
-//                       //  })
-//                       .entries(episodes);
-//
-//     hierarchy.forEach(function(d) {
-//                   d["values"].forEach(function(d1) {
-//                       d1["values"].forEach(function(d2) {
-//                           // d2["values"].forEach(function(d3) {
-//                               d2["value"] = 1;
-//                           // });
-//                       });
-//                   });
-//               });
-//
-//     // add root node to hierarcical set
-//     hierarchy = {"key": "Star Trek Series",
-//                  "values": hierarchy
-//                 };
-//
-//     return hierarchy;
-// }

@@ -33,10 +33,6 @@ function main(episodes) {
 
     console.log(nodeData);
 
-    let nested = hierarchy(episodes);
-
-    console.log(nested);
-
     // define svg dimensions
     let w = (window.innerWidth - 20) / 2;
     let h = w;
@@ -90,6 +86,8 @@ function sunburst(data, div, dims, colors) {
                      return d["size"];
                   });
 
+    console.log(root);
+
     // calculate arc angle + width for each series, season and episode
     partition(root);
     let arc = d3.arc()
@@ -119,27 +117,6 @@ function sunburst(data, div, dims, colors) {
      .style("fill", function(d) {
          return colors(d);
       });
-}
-
-
-/**
- * Transforms given data set to hierarchical object, usable for making a
- * sunburst diagram. Returns the made hierarchical data set.
- */
- function hierarchy(episodes) {
-    let nested = d3.nest()
-                   .key(function(d) {
-                       return d["series"];
-                    })
-                   .key(function(d) {
-                       return d["seasonNumber"]
-                    })
-                   .entries(episodes);
-    nested = {"key": "Star Trek Series",
-              "values": nested
-             };
-
-    return nested;
 }
 
 
@@ -214,3 +191,40 @@ function makeHierarchical(episodes) {
 
     return nodeData;
 }
+
+
+// /**
+//  * Transforms given data set to hierarchical object, usable for making a
+//  * sunburst diagram. Returns the made hierarchical data set.
+//  */
+//  function makeHierarchical(episodes) {
+//     // make a hierarchy by nesting first on series and then on season
+//     let hierarchy = d3.nest()
+//                       .key(function(d) {
+//                           return d["series"];
+//                        })
+//                       .key(function(d) {
+//                           return d["seasonNumber"];
+//                        })
+//                       // .key(function(d) {
+//                       //     return d["episodeNumber"];
+//                       //  })
+//                       .entries(episodes);
+//
+//     hierarchy.forEach(function(d) {
+//                   d["values"].forEach(function(d1) {
+//                       d1["values"].forEach(function(d2) {
+//                           // d2["values"].forEach(function(d3) {
+//                               d2["value"] = 1;
+//                           // });
+//                       });
+//                   });
+//               });
+//
+//     // add root node to hierarcical set
+//     hierarchy = {"key": "Star Trek Series",
+//                  "values": hierarchy
+//                 };
+//
+//     return hierarchy;
+// }

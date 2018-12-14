@@ -1,0 +1,76 @@
+/**
+ * This file extends index.html and linkedviews.js.
+ *
+ * The file defines several CSS styles to be used in the script and HTML DOM.
+ *
+ * Name: Maud van Boven
+ * Student ID: 12474673
+ */
+
+
+/* define axis styles */
+.axis path, .axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+.axis text {
+    font-size: 11px;
+}
+.x.axis path {
+    stroke: none;
+}
+.label {
+    font-size: 12px;
+}
+
+
+/* define chart title style */
+.chart.title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+
+/* define legend style */
+.legend {
+    font-size: 12px;
+    font-variant: small-caps;
+}
+
+/* define slider style */
+.sliderClass {
+    position: relative;
+}
+.slider.text {
+    position: absolute;
+    left: 0;
+    top: 38%;
+    background-color: #6f210a;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 3px;
+    mix-blend-mode: multiply;
+}
+
+/* define general HTML elements and classes styles */
+body {
+    font-family: sans-serif;
+}
+h2.title {
+    width: 385px;
+    height: 50px;
+    text-transform: uppercase;
+    font-size: 50px;
+    background: linear-gradient(to right, #020f33, #1937b7, #7493ff, #ffc0ad, #ff7850, #6f210a);
+    -webkit-text-stroke-width: 6px;
+    -webkit-text-stroke-color: transparent;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: white;
+}
+p.student {
+    font-variant: small-caps;
+    font-weight: bold;
+}

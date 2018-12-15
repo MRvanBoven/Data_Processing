@@ -1,7 +1,10 @@
 /**
  * This file extends index.html.
  *
- * The file does things.
+ * The file loads in a JSON file, makes a zoomable sunburst diagram of the
+ * series/season/episode data from that file and makes a donut chart of
+ * character gender data from the file, that is linked to the sunburst diagram.
+ *
  *
  * Name: Maud van Boven
  * Student ID: 12474673
@@ -14,7 +17,7 @@
 window.onload = function() {
     // load in JSON data file
     console.log("--> BETTER WAY TO DO THIS? JQUERY?");
-    Promise.resolve(d3.json("startrekEpisodes.json"))
+    Promise.resolve(d3.json("startrek.json"))
            .then(function(data) {
                 main(data);
             })
@@ -30,8 +33,6 @@ window.onload = function() {
 function main(episodes) {
     // convert data to useful format for making sunburst diagram
     let nodeData = makeHierarchical(episodes);
-
-    console.log(nodeData);
 
     // define svg dimensions
     let w = (window.innerWidth - 20) / 2;
@@ -71,6 +72,7 @@ function main(episodes) {
                      .attr("class", "container")
                      .attr("id", "donut");
 
+    // make zoomable sunburst diagram
     sunburst(nodeData, sunburstDiv, dimensions, colorScale);
 }
 
@@ -125,7 +127,7 @@ function sunburst(data, div, dims, colorScale) {
                   })
                  .sum(function(d) {
                      return d["value"];
-                  });
+                 });
 
     // add arcs to SVG
     g.selectAll("path")
@@ -135,45 +137,63 @@ function sunburst(data, div, dims, colorScale) {
      .attr("d", arc)
      .style("stroke", "#232323")
      .style("fill", function(d) {
-         // give arcs same tone as 1st parent, lighter colors further from root
+         // give arcs same tone as 1st parent
          let original = d;
          while (d.depth > 1) {
              d = d.parent;
          }
-         return d3.rgb(colorScale(d.data.key)).brighter(original.depth - 1);
+
+         // lighter colors further from root, root & depth 1 keep original color
+         if (original.depth === 0) {
+             return d3.rgb(colorScale(d.data.key))
+                      .brighter(original.depth);
+         }
+         return d3.rgb(colorScale(d.data.key))
+                  .brighter(original.depth - 1);
       })
      .on("click", function(d) {
          // update gender data
          // show name in middle
-         console.log(d.data["key"]);
+         // while (d.children) {
+         //     d = d.children[0];
+         // }
+         // if (!(d.data)){
+         //     d = d[0];
+         // }
+         // d = d.data;
+         // console.log(d.series);
+         console.log(d.data.name);
+         console.log(data);
       })
      .on("dblclick", function(d) {
-          // zoom in
+          // zoom in (or out) on doubleclicked arc
           zoom(d);
       });
 
+    /**
+     * Zooms in/out on doubleclicked arc.
+     */
     function zoom(d) {
         g.transition()
-           .duration(750)
-           .tween("scale", function() {
-                // scale arc dimensions
-                let xd = d3.interpolate(scaleX.domain(), [d.x0, d.x1]),
-                    yd = d3.interpolate(scaleY.domain(), [d.y0, 1]);
-                    yr = d3.interpolate(scaleY.range(),
-                                        [d.y0 ? 0.2 * dims.radius
-                                              : 0, dims.radius]);
-
-                return function(t) {
-                    scaleX.domain(xd(t));
-                    scaleY.domain(yd(t)).range(yr(t));
-                };
-            })
-           .selectAll("path")
-           .attrTween("d", function(d) {
-                return function() {
-                    return arc(d);
-                };
-            });
+         .duration(750)
+         .tween("scale", function() {
+              // scale arc dimensions
+              let xd = d3.interpolate(scaleX.domain(), [d.x0, d.x1]),
+                  yd = d3.interpolate(scaleY.domain(), [d.y0, 1]);
+                  yr = d3.interpolate(scaleY.range(),
+                                      [d.y0 ? 0.2 * dims.radius
+                                            : 0, dims.radius]);
+              return function(t) {
+                  scaleX.domain(xd(t));
+                  scaleY.domain(yd(t)).range(yr(t));
+              };
+          })
+         .selectAll("path")
+         .attrTween("d", function(d) {
+              return function() {
+                  return arc(d);
+              };
+          });
     }
 }
 
@@ -183,30 +203,46 @@ function sunburst(data, div, dims, colorScale) {
  * sunburst diagram. Returns the made hierarchical data set.
  */
 function makeHierarchical(episodes) {
-    // make a hierarchy by nesting first on series and then on season
+    // make hierarchy by nesting first on series then on season, sort in order
     let hierarchy = d3.nest()
                       .key(function(d) {
-                          return d["series"];
+                          // return production start year to sort on it
+                          return d["seriesProductionStartYear"];
                        })
+                      .sortKeys(d3.ascending)
                       .key(function(d) {
-                          let s = `${d["series"]} season ${d["seasonNumber"]}`;
-                          return s;
+                          return d["seasonNumber"];
+                       })
+                      .sortKeys(d3.ascending)
+                      .sortValues(function(a, b) {
+                           return d3.ascending(a["episodeNumber"],
+                                               b["episodeNumber"]);
                        })
                       .entries(episodes);
 
     // add value to episode nodes
     hierarchy.forEach(function(d) {
+                  d["name"] = d["values"][0]["values"][0]["series"];
                   d["values"].forEach(function(d1) {
+                      d1["name"] = `${d1["values"][0]["series"]} season ${d1["values"][0]["seasonNumber"]}`;
                       d1["values"].forEach(function(d2) {
                           d2["value"] = 1;
+                          d2["name"] = d2["title"];
                       });
                   });
               });
 
     // add root node to hierarcical set
     hierarchy = {"key": "Star Trek Series",
+                 "name": "Star Trek Series",
                  "values": hierarchy
                 };
 
     return hierarchy;
 }
+
+
+
+// TODO:
+// - doubleclicked =/= 2x click
+// - order series/seasons/episodes oldest to newest

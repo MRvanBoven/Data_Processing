@@ -12,12 +12,22 @@
    source: https://webfonts.ffonts.net/StarTrek.font*/
 @font-face {
    font-family: 'StarTrek';
-   src:url('StarTrek.ttf.woff') format('woff'),
-       url('StarTrek.ttf.svg#StarTrek') format('svg'),
-       url('StarTrek.ttf.eot'),
-       url('StarTrek.ttf.eot?#iefix') format('embedded-opentype');
+   src: url('StarTrek.ttf.woff') format('woff'),
+        url('StarTrek.ttf.svg#StarTrek') format('svg'),
+        url('StarTrek.ttf.eot'),
+        url('StarTrek.ttf.eot?#iefix') format('embedded-opentype');
    font-weight: normal;
    font-style: normal;
+}
+
+/* Define Abel font,
+   source: https://fonts.googleapis.com/css?family=Abel */
+@font-face {
+  font-family: 'Abel';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Abel Regular'), local('Abel-Regular'), url(https://fonts.gstatic.com/s/abel/v8/MwQ5bhbm2POE2V9BPQ.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 
@@ -37,14 +47,14 @@
 
 /* define general HTML elements and classes styles */
 body {
-    position: absolute;
-    top: -60px;
     color: white;
-    font-family: sans-serif;
+    font-family: 'Abel';
     background-color: #232323;
 }
 h2.title {
-    height: 50px;
+    position: relative;
+    top: -50px;
+    height: 0px;
     width: 1000px;
     font-size: 100px;
     color: white;

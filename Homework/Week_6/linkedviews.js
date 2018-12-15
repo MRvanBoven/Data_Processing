@@ -52,13 +52,14 @@ function main(episodes) {
                            }
                            return dom;
                         })
-                       .range(["#56001E",
+                       .range(["#232323",
+                               "#56001E",
                                "#980C1D",
                                "#C34D3A",
-                               "#69A6C3",
-                               "#2A6E96",
-                               "#12477D",
-                               "#021A35"]);
+                               "#3B83A5",
+                               "#246084",
+                               "#0F3C6B",
+                               "#032346"]);
 
     // add divisions for the sunbust diagram and donut chart
     let sunburstDiv = d3.select("body")
@@ -76,11 +77,12 @@ function main(episodes) {
 
 /**
  * Makes a sunburst diagram of given data set.
- * Made with help of and code from the tutorial found on
- * https://bl.ocks.org/denjn5/e1cdbbe586ac31747b4a304f8f86efa5.
+ * Made with help of and code from the tutorial and example found on
+ * https://bl.ocks.org/denjn5/e1cdbbe586ac31747b4a304f8f86efa5 and
+ * https://bl.ocks.org/maybelinot/5552606564ef37b5de7e47ed2b7dc099.
  */
 function sunburst(data, div, dims, colorScale) {
-    // add SVG element for plot to DOM and remember its reference
+    // add SVG element and g element to division for making sunbust
     let svg = div.append("svg")
                  .attr("width", dims.w)
                  .attr("height", dims.h);
@@ -91,11 +93,33 @@ function sunburst(data, div, dims, colorScale) {
                .attr("transform", "translate(" + dims.w / 2 + ","
                                                + dims.h / 2 + ")");
 
-    // set partition for the sunburst diagram
-    let partition = d3.partition()
-                      .size([2 * Math.PI, dims.radius]);
+    // define x and y scalers for zooming on sunburst
+    let scaleX = d3.scaleLinear()
+                   .range([0, 2 * Math.PI]);
+    let scaleY = d3.scaleSqrt()
+                   .range([0, dims.radius]);
 
-    // find root node
+    // set partition for the sunburst diagram
+    let partition = d3.partition();
+
+    // calculate arc angle + width for each series, season and episode
+    let arc = d3.arc()
+                .startAngle(function(d) {
+                    return Math.max(0, Math.min(2 * Math.PI, scaleX(d.x0)));
+                    // return scaleX(d.x0);
+                 })
+                .endAngle(function(d) {
+                    return Math.max(0, Math.min(2 * Math.PI, scaleX(d.x1)));
+                    // return scaleX(d.x1);
+                 })
+                .innerRadius(function(d) {
+                    return Math.max(0, scaleY(d.y0));
+                 })
+                .outerRadius(function(d) {
+                    return Math.max(0, scaleY(d.y1));
+                 });
+
+    // find root node (letting hierarchy know which values to use)
     let root = d3.hierarchy(data, function children(d) {
                       return d["values"];
                   })
@@ -103,32 +127,13 @@ function sunburst(data, div, dims, colorScale) {
                      return d["value"];
                   });
 
-    // calculate arc angle + width for each series, season and episode
-    partition(root);
-    let arc = d3.arc()
-                .startAngle(function(d) {
-                    return d.x0;
-                 })
-                .endAngle(function(d) {
-                    return d.x1;
-                 })
-                .innerRadius(function(d) {
-                    return d.y0;
-                 })
-                .outerRadius(function(d) {
-                    return d.y1;
-                 });
-
-    // add calculated arcs to SVG
+    // add arcs to SVG
     g.selectAll("path")
-     .data(root.descendants())
+     .data(partition(root).descendants())
      .enter()
      .append("path")
-     .attr("display", function(d) {
-         return d.depth ? null : "none";
-      })
      .attr("d", arc)
-     .style("stroke", "#fff")
+     .style("stroke", "#232323")
      .style("fill", function(d) {
          // give arcs same tone as 1st parent, lighter colors further from root
          let original = d;
@@ -136,7 +141,40 @@ function sunburst(data, div, dims, colorScale) {
              d = d.parent;
          }
          return d3.rgb(colorScale(d.data.key)).brighter(original.depth - 1);
+      })
+     .on("click", function(d) {
+         // update gender data
+         // show name in middle
+         console.log(d.data["key"]);
+      })
+     .on("dblclick", function(d) {
+          // zoom in
+          zoom(d);
       });
+
+    function zoom(d) {
+        g.transition()
+           .duration(750)
+           .tween("scale", function() {
+                // scale arc dimensions
+                let xd = d3.interpolate(scaleX.domain(), [d.x0, d.x1]),
+                    yd = d3.interpolate(scaleY.domain(), [d.y0, 1]);
+                    yr = d3.interpolate(scaleY.range(),
+                                        [d.y0 ? 0.2 * dims.radius
+                                              : 0, dims.radius]);
+
+                return function(t) {
+                    scaleX.domain(xd(t));
+                    scaleY.domain(yd(t)).range(yr(t));
+                };
+            })
+           .selectAll("path")
+           .attrTween("d", function(d) {
+                return function() {
+                    return arc(d);
+                };
+            });
+    }
 }
 
 
@@ -144,14 +182,15 @@ function sunburst(data, div, dims, colorScale) {
  * Transforms given data set to hierarchical object, usable for making a
  * sunburst diagram. Returns the made hierarchical data set.
  */
- function makeHierarchical(episodes) {
+function makeHierarchical(episodes) {
     // make a hierarchy by nesting first on series and then on season
     let hierarchy = d3.nest()
                       .key(function(d) {
                           return d["series"];
                        })
                       .key(function(d) {
-                          return d["seasonNumber"];
+                          let s = `${d["series"]} season ${d["seasonNumber"]}`;
+                          return s;
                        })
                       .entries(episodes);
 

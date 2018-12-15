@@ -9,7 +9,7 @@ saves the desired data in an output JSON file.
 import json
 import requests
 
-OUTPUT_JSON = 'startrekEpisodes.json'
+OUTPUT_JSON = 'startrek.json'
 
 
 if __name__ == "__main__":
@@ -46,6 +46,8 @@ if __name__ == "__main__":
                                  "episodeNumber": eps["episodeNumber"],
                                  "seasonNumber": eps["seasonNumber"],
                                  "series": eps["series"]["title"],
+                                 "seriesProductionStartYear":
+                                     eps["series"]["productionStartYear"],
                                  "characters": characters})
 
         page_nr += 1;

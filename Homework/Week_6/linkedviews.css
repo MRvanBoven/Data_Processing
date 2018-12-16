@@ -78,3 +78,7 @@ p.student {
     position: relative;
     float: left;
 }
+
+.label {
+    font-variant: small-caps;
+}

@@ -35,11 +35,11 @@ function main(episodes) {
     let nodeData = makeHierarchical(episodes);
 
     // define svg dimensions
-    let w = (window.innerWidth - 20) / 2;
+    let w = (window.innerWidth * 0.95) / 2;
     let h = w;
     let margins = {top: 30, bottom: 30, left: 30, right: 30},
-        width = w - margins.left - margins.right,
-        height = h - margins.top - margins.bottom,
+        width = (w - margins.left - margins.right),
+        height = (h - margins.top - margins.bottom),
         radius = Math.min(width, height) / 2;
     let dimensions = {w: w, h: h, margins: margins, width: width,
                       height: height, radius: radius};
@@ -63,23 +63,124 @@ function main(episodes) {
                                "#032346"]);
 
     // add divisions for the sunbust diagram and donut chart
-    let sunburstDiv = d3.select("body")
-                        .append("div")
-                        .attr("class", "container")
-                        .attr("id", "sunburst");
-    let donutDiv = d3.select("body")
-                     .append("div")
-                     .attr("class", "container")
-                     .attr("id", "donut");
+    let container = d3.select("body")
+                      .append("div")
+                      .attr("class", "container")
+                      .attr("width", w * 2);
+    let sunburstDiv = container.append("div")
+                               .attr("class", "container1")
+                               .attr("id", "sunburst")
+                               .attr("width", width);
+    let donutDiv = container.append("div")
+                            .attr("class", "container2")
+                            .attr("id", "donut")
+                            .attr("width", width);
 
-    // make zoomable sunburst diagram
+    // make zoomable sunburst diagram, linked to donut chart
     sunburst(nodeData, sunburstDiv, dimensions, colorScale);
+
+    // make donut chart, initialize with all series data
+    donut(nodeData, donutDiv, dimensions, colorScale);
+}
+
+
+/**
+ * Makes a donut chart of given data.
+ */
+function donut(data, div, dims, colorScale) {
+    // add SVG element and g element to division for making donut chart
+    let svg = div.append("svg")
+                 .attr("width", dims.w)
+                 .attr("height", dims.h);
+
+    let g = svg.append("g")
+               .attr("width", dims.w)
+               .attr("height", dims.h)
+               .attr("transform", "translate(" + dims.w / 2 + ","
+                                               + dims.h / 2 + ")");
+
+    // get character gender ratio data of all series
+    let genders = findGenderRatio(data);
+
+    // define pie division
+    let pie = d3.pie(genders)
+                .padAngle(0.005)
+                .sort(null)
+                .value(function(d) {
+                     return d["value"];
+                 });
+
+    // define arcs
+    let arc = d3.arc()
+                .innerRadius(dims.radius * 0.7)
+                .outerRadius(dims.radius);
+
+    let arcs = pie(genders);
+
+    // add arcs to SVG
+    g.selectAll("path")
+     .data(arcs)
+     .enter()
+     .append("path")
+     .attr("d", arc)
+     .attr("fill", function(d) {
+          return colorScale(d.data.label + 1);
+      })
+     .append("title")
+     .text(function(d) {
+          return d.data.label;
+      });
+}
+
+
+/**
+ * Finds gender ratio of all characters appearing in given (clicked) series,
+ * season, or episode.
+ */
+function findGenderRatio(d) {
+    // create structure to save gender ratio in
+    let genders = [{"label": "female", "value": 0},
+                   {"label": "male", "value": 0},
+                   {"label": "other", "value": 0},
+                   {"label": "unknown", "value": 0}];
+
+    addGenders(d);
+
+    /**
+     * Adds up all character genders of all episodes included in given series,
+     * season or episode (d).
+     */
+    function addGenders(d) {
+        if (d["values"]) {
+            d["values"].forEach(function(d1) {
+                addGenders(d1);
+            });
+        }
+        else {
+            d["characters"].forEach(function(char) {
+                if (char["gender"] === "F") {
+                    genders[0]["value"]++;
+                }
+                else if (char["gender"] === "M") {
+                    genders[1]["value"]++;
+                }
+                else if (char["gender"] === null) {
+                    genders[3]["value"]++;
+                }
+                else {
+                    genders[2]["value"]++;
+                }
+            });
+        }
+    }
+
+    return genders;
 }
 
 
 /**
  * Makes a sunburst diagram of given data set.
- * Made with help of and code from the tutorial and example found on
+ * Made with help from the tutorial and example found on
  * https://bl.ocks.org/denjn5/e1cdbbe586ac31747b4a304f8f86efa5 and
  * https://bl.ocks.org/maybelinot/5552606564ef37b5de7e47ed2b7dc099.
  */
@@ -104,15 +205,13 @@ function sunburst(data, div, dims, colorScale) {
     // set partition for the sunburst diagram
     let partition = d3.partition();
 
-    // calculate arc angle + width for each series, season and episode
+    // define arc angle + width
     let arc = d3.arc()
                 .startAngle(function(d) {
                     return Math.max(0, Math.min(2 * Math.PI, scaleX(d.x0)));
-                    // return scaleX(d.x0);
                  })
                 .endAngle(function(d) {
                     return Math.max(0, Math.min(2 * Math.PI, scaleX(d.x1)));
-                    // return scaleX(d.x1);
                  })
                 .innerRadius(function(d) {
                     return Math.max(0, scaleY(d.y0));
@@ -127,7 +226,7 @@ function sunburst(data, div, dims, colorScale) {
                   })
                  .sum(function(d) {
                      return d["value"];
-                 });
+                  });
 
     // add arcs to SVG
     g.selectAll("path")
@@ -163,7 +262,8 @@ function sunburst(data, div, dims, colorScale) {
          // d = d.data;
          // console.log(d.series);
          console.log(d.data.name);
-         console.log(data);
+         console.log(d);
+         console.log(findGenderRatio(d.data));
       })
      .on("dblclick", function(d) {
           // zoom in (or out) on doubleclicked arc
@@ -220,17 +320,18 @@ function makeHierarchical(episodes) {
                        })
                       .entries(episodes);
 
-    // add value to episode nodes
+    // add name to each node and add value to episode nodes
     hierarchy.forEach(function(d) {
-                  d["name"] = d["values"][0]["values"][0]["series"];
-                  d["values"].forEach(function(d1) {
-                      d1["name"] = `${d1["values"][0]["series"]} season ${d1["values"][0]["seasonNumber"]}`;
-                      d1["values"].forEach(function(d2) {
-                          d2["value"] = 1;
-                          d2["name"] = d2["title"];
-                      });
-                  });
-              });
+        d["name"] = d["values"][0]["values"][0]["series"];
+        d["values"].forEach(function(d1) {
+            d1["name"] = `${d1["values"][0]["series"]} season
+                          ${d1["values"][0]["seasonNumber"]}`;
+            d1["values"].forEach(function(d2) {
+                d2["value"] = 1;
+                d2["name"] = d2["title"];
+            });
+        });
+    });
 
     // add root node to hierarcical set
     hierarchy = {"key": "Star Trek Series",

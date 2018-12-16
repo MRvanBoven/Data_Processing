@@ -46,6 +46,14 @@ function main(episodes) {
 
     // define color scale for sunburst diagram and donut chart
     let colorScaleSun = d3.scaleOrdinal()
+                          .domain(function() {
+                               let dom = [];
+                               for (let i = 0; i < nodeData["values"].length;
+                                    i++) {
+                                   dom.push(i);
+                               }
+                               return dom;
+                           })
                           .range(["#232323",
                                   "#56001E",
                                   "#980C1D",
@@ -55,6 +63,7 @@ function main(episodes) {
                                   "#0F3C6B",
                                   "#032346"]);
     let colorScaleDonut = d3.scaleOrdinal()
+                            .domain(["female", "male", "other", "unknown"])
                             .range([d3.rgb("#56001E").brighter(1),
                                     d3.rgb("#C34D3A").brighter(1),
                                     d3.rgb("#3B83A5").brighter(1),
@@ -134,19 +143,27 @@ function donut(data, div, dims, colorScale) {
      .data(arcs)
      .enter()
      .append("text")
+     .attr("class", "label")
      .attr("display", function(d) {
-          console.log(d);
           return (d.value !== 0) ? null : "none";
       })
-     .style("fill", "#EAEAEA")
      .attr("text-anchor", "middle")
+     .style("fill", "#EAEAEA")
+     .style("font-size", `${dims.width * 0.06}px`)
      .each(function(d) {
           d3.select(this)
             .attr("x", arc.centroid(d)[0])
             .attr("y", arc.centroid(d)[1])
-            .attr("dy", "0.33em")
+            .attr("dy", `${dims.width * 0.06 / 4}px`)
             .text(d.data.label);
       });
+
+    g.append("text")
+     .attr("text-anchor", "middle")
+     .attr("y", dims.width * 0.08 / 4)
+     .style("fill", "#EAEAEA")
+     .style("font-size", `${dims.width * 1.5 / data.key.length}px`)
+     .text(data.key);
 }
 
 
@@ -268,10 +285,8 @@ function sunburst(data, div, dims, colorScale) {
                   .brighter(original.depth - 1);
       })
      .on("click", function(d) {
-         // update gender data
-         console.log(d.data.name);
-         console.log(d);
-         console.log(findGenderRatio(d.data));
+         // update gender data in donut chart
+         updateDonut(d);
       })
      .on("dblclick", function(d) {
           // zoom in (or out) on doubleclicked arc
@@ -331,21 +346,43 @@ function makeHierarchical(episodes) {
     // add name to each node and add value to episode nodes
     hierarchy.forEach(function(d) {
         d["name"] = d["values"][0]["values"][0]["series"];
+
         d["values"].forEach(function(d1) {
-            d1["name"] = `${d1["values"][0]["series"]} season
-                          ${d1["values"][0]["seasonNumber"]}`;
+            // save name with full series/season data and abbreviations
+            let title = `ST: ${d1["values"][0]["series"]} season
+                         ${d1["values"][0]["seasonNumber"]}`
+            d1["name"] = title.slice(0, 3) + title.slice(14);
+
             d1["values"].forEach(function(d2) {
+                // save name with full series/S/E data and abbreviations
+                let title = `ST: ${d2["series"]}
+                             S${d2["seasonNumber"]}E${d2["episodeNumber"]}:
+                             ${d2["title"]}`
+                d2["name"] = title.slice(0, 3) + title.slice(14);
+
+                // give all episodes a value of 1
                 d2["value"] = 1;
-                d2["name"] = d2["title"];
             });
         });
     });
 
     // add root node to hierarcical set
-    hierarchy = {"key": "Star Trek Series",
-                 "name": "Star Trek Series",
+    hierarchy = {"key": "All Star Trek Series",
+                 "name": "All Star Trek Series",
                  "values": hierarchy
                 };
 
     return hierarchy;
+}
+
+
+/**
+ *
+ */
+function updateDonut(d) {
+    let genders = findGenderRatio(d.data);
+    console.log(genders);
+    console.log(d.data.name);
+
+
 }

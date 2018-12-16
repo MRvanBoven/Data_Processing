@@ -108,14 +108,14 @@ function donut(data, div, dims, colorScale) {
                .attr("transform", "translate(" + dims.w / 2 + ","
                                                + dims.h / 2 + ")");
 
-    updateDonutChart(data, dims, colorScale);
+    updateDonutData(data, dims, colorScale);
 }
 
 
 /**
  *
  */
-function updateDonutChart(data, dims, colorScale) {
+function updateDonutData(data, dims, colorScale) {
     // get character gender ratio data of all series
     let genders = findGenderRatio(data);
 
@@ -132,77 +132,66 @@ function updateDonutChart(data, dims, colorScale) {
                 .innerRadius(dims.radius * 0.7)
                 .outerRadius(dims.radius);
 
+    let arcs = pie(genders);
+
+    // add arc transitions
+    d3.select("#donut")
+      .selectAll("path")
+      .data(arcs)
+      .transition()
+      .attr("d", arc);
+
     // add arcs to SVG
-    let arcs = d3.select("#donut")
-                 .selectAll("path")
-                 .data(pie(genders))
-                 .enter()
-                 .append("path")
-                 .attr("d", arc)
-                 .style("fill", function(d) {
-                      return colorScale(d.data.label);
-                  })
-                 .append("title")
-                 .text(function(d) {
-                      return d.data.label;
-                  });
+    d3.select("#donut")
+      .selectAll("path")
+      .data(arcs)
+      .enter()
+      .append("path")
+      .attr("d", arc)
+      .attr("fill", function(d) {
+           return colorScale(d.data.label);
+       })
+      .append("title")
+      .text(function(d) {
+           return d.data.label;
+       });
 
-    arcs.transition()
-        .duration(750)
-        .attrTween("d", function(d) {
-             this._current = this._current || d;
-             let interpol = d3.interpolate(this._current, d);
-             this._current = interpol(0);
-             return function(t) {
-                 return arc(interpol(t));
-             };
-        });
-
-    arcs.exit()
-        .remove();
+    // add text transitions
+    d3.select("#donut")
+      .selectAll("text")
+      .data(arcs)
+      .transition();
 
     // add labels to arcs, only visible if arc itself is visible (has value > 0)
-    let labels = d3.select("#donut")
-                   .selectAll("text")
-                   .data(arcs)
-                   .enter()
-                   .append("text")
-                   .attr("class", "label")
-                   .attr("display", function(d) {
-                        return (d.value !== 0) ? null : "none";
-                    })
-                   .attr("text-anchor", "middle")
-                   .style("fill", "#EAEAEA")
-                   .style("font-size", `${dims.width * 0.06}px`)
-                   .each(function(d) {
-                        d3.select(this)
-                          .attr("x", arc.centroid(d)[0])
-                          .attr("y", arc.centroid(d)[1])
-                          .attr("dy", `${dims.width * 0.06 / 4}px`)
-                      .text(d.data.label);
-                    });
-
-    labels.transition()
-          .duration(750)
-          .attrTween("transform", function(d) {
-              this._current = this._current || d;
-              let interpol = d3.interpolate(this._current, d);
-              this._current = interpol(0);
-              return function(t) {
-                  let position = arc.centroid(interpol(t));
-                  // position[0] = dims.radius *
-                  return "translate(" + position + ")";
-              };
-          });
+    d3.select("#donut")
+      .selectAll("text")
+      .data(arcs)
+      .enter()
+      .append("text")
+      .attr("class", "label")
+      .attr("display", function(d) {
+           return (d.value !== 0) ? null : "none";
+       })
+      .attr("text-anchor", "middle")
+      .style("fill", "#EAEAEA")
+      .style("font-size", `${dims.width * 0.06}px`)
+      .each(function(d) {
+           d3.select(this)
+             .attr("x", arc.centroid(d)[0])
+             .attr("y", arc.centroid(d)[1])
+             .attr("dy", `${dims.width * 0.06 / 4}px`)
+             .text(d.data.label);
+       });
 
     d3.select("#donut")
-     .append("text")
-     .attr("text-anchor", "middle")
-     .attr("y", dims.width * 0.08 / 4)
-     .style("fill", "#EAEAEA")
-     .style("font-size", `${dims.width * 1.5 / data.key.length}px`)
-     .text(data.key);
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("y", dims.width * 0.08 / 4)
+      .style("fill", "#EAEAEA")
+      .style("font-size", `${dims.width * 1.5 / data.key.length}px`)
+      .text(data.name);
 }
+
 
 
 /**
@@ -325,12 +314,16 @@ function sunburst(data, div, dims, colorScale, colorScaleDonut) {
      .on("click", function(d) {
          // update gender data in donut chart
          updateDonut(d);
-         updateDonutChart(d.data, dims, colorScaleDonut);
+         updateDonutData(d.data, dims, colorScaleDonut);
       })
      .on("dblclick", function(d) {
           // zoom in (or out) on doubleclicked arc
           zoom(d);
-      });
+      })
+     .append("title")
+     .text(function(d) {
+          return d.data.name;
+      });;
 
     /**
      * Zooms in/out on doubleclicked arc.
@@ -388,15 +381,15 @@ function makeHierarchical(episodes) {
 
         d["values"].forEach(function(d1) {
             // save name with full series/season data and abbreviations
-            let title = `ST: ${d1["values"][0]["series"]} season
-                         ${d1["values"][0]["seasonNumber"]}`
+            let title = `ST: ${d1["values"][0]["series"]} season `
+                         + `${d1["values"][0]["seasonNumber"]}`
             d1["name"] = title.slice(0, 3) + title.slice(14);
 
             d1["values"].forEach(function(d2) {
                 // save name with full series/S/E data and abbreviations
-                let title = `ST: ${d2["series"]}
-                             S${d2["seasonNumber"]}E${d2["episodeNumber"]}:
-                             ${d2["title"]}`
+                let title = `ST: ${d2["series"]} `
+                             + `S${d2["seasonNumber"]}E${d2["episodeNumber"]}: `
+                             + `${d2["title"]}`
                 d2["name"] = title.slice(0, 3) + title.slice(14);
 
                 // give all episodes a value of 1

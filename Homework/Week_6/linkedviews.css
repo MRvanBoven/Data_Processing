@@ -69,3 +69,12 @@ p.student {
     font-variant: small-caps;
     font-weight: bold;
 }
+
+.container1 {
+    position: relative;
+    float: left;
+}
+.container2 {
+    position: relative;
+    float: left;
+}

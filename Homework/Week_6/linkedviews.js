@@ -128,6 +128,25 @@ function donut(data, div, dims, colorScale) {
      .text(function(d) {
           return d.data.label;
       });
+
+    // add labels to arcs, only visible if arc itself is visible (has value > 0)
+    g.selectAll("text")
+     .data(arcs)
+     .enter()
+     .append("text")
+     .attr("display", function(d) {
+          console.log(d);
+          return (d.value !== 0) ? null : "none";
+      })
+     .style("fill", "#EAEAEA")
+     .attr("text-anchor", "middle")
+     .each(function(d) {
+          d3.select(this)
+            .attr("x", arc.centroid(d)[0])
+            .attr("y", arc.centroid(d)[1])
+            .attr("dy", "0.33em")
+            .text(d.data.label);
+      });
 }
 
 
@@ -250,15 +269,6 @@ function sunburst(data, div, dims, colorScale) {
       })
      .on("click", function(d) {
          // update gender data
-         // show name in middle
-         // while (d.children) {
-         //     d = d.children[0];
-         // }
-         // if (!(d.data)){
-         //     d = d[0];
-         // }
-         // d = d.data;
-         // console.log(d.series);
          console.log(d.data.name);
          console.log(d);
          console.log(findGenderRatio(d.data));
@@ -339,9 +349,3 @@ function makeHierarchical(episodes) {
 
     return hierarchy;
 }
-
-
-
-// TODO:
-// - doubleclicked =/= 2x click
-// - order series/seasons/episodes oldest to newest

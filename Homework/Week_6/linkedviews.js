@@ -139,7 +139,13 @@ function updateDonutData(data, dims, colorScale) {
       .selectAll("path")
       .data(arcs)
       .transition()
-      .attr("d", arc);
+      .attrTween("d", function(d) {
+          let interpol = d3.interpolate(this._current, d);
+          this._current = interpol(0);
+          return function(t) {
+              return arc(interpol(t));
+          };
+      });
 
     // add arcs to SVG
     d3.select("#donut")

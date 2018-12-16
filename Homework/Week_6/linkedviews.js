@@ -76,15 +76,15 @@ function main(episodes) {
                       .attr("width", w * 2);
     let sunburstDiv = container.append("div")
                                .attr("class", "container1")
-                               .attr("id", "sunburst")
+                               .attr("id", "sunburstDiv")
                                .attr("width", width);
     let donutDiv = container.append("div")
                             .attr("class", "container2")
-                            .attr("id", "donut")
+                            .attr("id", "donutDiv")
                             .attr("width", width);
 
     // make zoomable sunburst diagram, linked to donut chart
-    sunburst(nodeData, sunburstDiv, dimensions, colorScaleSun);
+    sunburst(nodeData, sunburstDiv, dimensions, colorScaleSun, colorScaleDonut);
 
     // make donut chart, initialize with all series data
     donut(nodeData, donutDiv, dimensions, colorScaleDonut);
@@ -97,15 +97,25 @@ function main(episodes) {
 function donut(data, div, dims, colorScale) {
     // add SVG element and g element to division for making donut chart
     let svg = div.append("svg")
+                 .attr("id", "donutSVG")
                  .attr("width", dims.w)
                  .attr("height", dims.h);
 
     let g = svg.append("g")
+               .attr("id", "donut")
                .attr("width", dims.w)
                .attr("height", dims.h)
                .attr("transform", "translate(" + dims.w / 2 + ","
                                                + dims.h / 2 + ")");
 
+    updateDonutChart(data, dims, colorScale);
+}
+
+
+/**
+ *
+ */
+function updateDonutChart(data, dims, colorScale) {
     // get character gender ratio data of all series
     let genders = findGenderRatio(data);
 
@@ -122,43 +132,71 @@ function donut(data, div, dims, colorScale) {
                 .innerRadius(dims.radius * 0.7)
                 .outerRadius(dims.radius);
 
-    let arcs = pie(genders);
-
     // add arcs to SVG
-    g.selectAll("path")
-     .data(arcs)
-     .enter()
-     .append("path")
-     .attr("d", arc)
-     .attr("fill", function(d) {
-          return colorScale(d.data.label);
-      })
-     .append("title")
-     .text(function(d) {
-          return d.data.label;
-      });
+    let arcs = d3.select("#donut")
+                 .selectAll("path")
+                 .data(pie(genders))
+                 .enter()
+                 .append("path")
+                 .attr("d", arc)
+                 .style("fill", function(d) {
+                      return colorScale(d.data.label);
+                  })
+                 .append("title")
+                 .text(function(d) {
+                      return d.data.label;
+                  });
+
+    arcs.transition()
+        .duration(750)
+        .attrTween("d", function(d) {
+             this._current = this._current || d;
+             let interpol = d3.interpolate(this._current, d);
+             this._current = interpol(0);
+             return function(t) {
+                 return arc(interpol(t));
+             };
+        });
+
+    arcs.exit()
+        .remove();
 
     // add labels to arcs, only visible if arc itself is visible (has value > 0)
-    g.selectAll("text")
-     .data(arcs)
-     .enter()
-     .append("text")
-     .attr("class", "label")
-     .attr("display", function(d) {
-          return (d.value !== 0) ? null : "none";
-      })
-     .attr("text-anchor", "middle")
-     .style("fill", "#EAEAEA")
-     .style("font-size", `${dims.width * 0.06}px`)
-     .each(function(d) {
-          d3.select(this)
-            .attr("x", arc.centroid(d)[0])
-            .attr("y", arc.centroid(d)[1])
-            .attr("dy", `${dims.width * 0.06 / 4}px`)
-            .text(d.data.label);
-      });
+    let labels = d3.select("#donut")
+                   .selectAll("text")
+                   .data(arcs)
+                   .enter()
+                   .append("text")
+                   .attr("class", "label")
+                   .attr("display", function(d) {
+                        return (d.value !== 0) ? null : "none";
+                    })
+                   .attr("text-anchor", "middle")
+                   .style("fill", "#EAEAEA")
+                   .style("font-size", `${dims.width * 0.06}px`)
+                   .each(function(d) {
+                        d3.select(this)
+                          .attr("x", arc.centroid(d)[0])
+                          .attr("y", arc.centroid(d)[1])
+                          .attr("dy", `${dims.width * 0.06 / 4}px`)
+                      .text(d.data.label);
+                    });
 
-    g.append("text")
+    labels.transition()
+          .duration(750)
+          .attrTween("transform", function(d) {
+              this._current = this._current || d;
+              let interpol = d3.interpolate(this._current, d);
+              this._current = interpol(0);
+              return function(t) {
+                  let position = arc.centroid(interpol(t));
+                  // position[0] = dims.radius *
+                  return "translate(" + position + ")";
+              };
+          });
+
+    d3.select("#donut")
+     .append("text")
      .attr("text-anchor", "middle")
      .attr("y", dims.width * 0.08 / 4)
      .style("fill", "#EAEAEA")
@@ -218,7 +256,7 @@ function findGenderRatio(d) {
  * https://bl.ocks.org/denjn5/e1cdbbe586ac31747b4a304f8f86efa5 and
  * https://bl.ocks.org/maybelinot/5552606564ef37b5de7e47ed2b7dc099.
  */
-function sunburst(data, div, dims, colorScale) {
+function sunburst(data, div, dims, colorScale, colorScaleDonut) {
     // add SVG element and g element to division for making sunbust
     let svg = div.append("svg")
                  .attr("width", dims.w)
@@ -287,6 +325,7 @@ function sunburst(data, div, dims, colorScale) {
      .on("click", function(d) {
          // update gender data in donut chart
          updateDonut(d);
+         updateDonutChart(d.data, dims, colorScaleDonut);
       })
      .on("dblclick", function(d) {
           // zoom in (or out) on doubleclicked arc

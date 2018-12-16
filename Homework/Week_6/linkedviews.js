@@ -44,23 +44,21 @@ function main(episodes) {
     let dimensions = {w: w, h: h, margins: margins, width: width,
                       height: height, radius: radius};
 
-    // define color scale for coloring diagram
-    let colorScale = d3.scaleOrdinal()
-                      .domain(function() {
-                           let dom = [];
-                           for (let i = 0; i < nodeData["values"].length; i++) {
-                               dom.push(i);
-                           }
-                           return dom;
-                        })
-                       .range(["#232323",
-                               "#56001E",
-                               "#980C1D",
-                               "#C34D3A",
-                               "#3B83A5",
-                               "#246084",
-                               "#0F3C6B",
-                               "#032346"]);
+    // define color scale for sunburst diagram and donut chart
+    let colorScaleSun = d3.scaleOrdinal()
+                          .range(["#232323",
+                                  "#56001E",
+                                  "#980C1D",
+                                  "#C34D3A",
+                                  "#3B83A5",
+                                  "#246084",
+                                  "#0F3C6B",
+                                  "#032346"]);
+    let colorScaleDonut = d3.scaleOrdinal()
+                            .range([d3.rgb("#56001E").brighter(1),
+                                    d3.rgb("#C34D3A").brighter(1),
+                                    d3.rgb("#3B83A5").brighter(1),
+                                    d3.rgb("#0F3C6B").brighter(1)]);
 
     // add divisions for the sunbust diagram and donut chart
     let container = d3.select("body")
@@ -77,10 +75,10 @@ function main(episodes) {
                             .attr("width", width);
 
     // make zoomable sunburst diagram, linked to donut chart
-    sunburst(nodeData, sunburstDiv, dimensions, colorScale);
+    sunburst(nodeData, sunburstDiv, dimensions, colorScaleSun);
 
     // make donut chart, initialize with all series data
-    donut(nodeData, donutDiv, dimensions, colorScale);
+    donut(nodeData, donutDiv, dimensions, colorScaleDonut);
 }
 
 
@@ -124,7 +122,7 @@ function donut(data, div, dims, colorScale) {
      .append("path")
      .attr("d", arc)
      .attr("fill", function(d) {
-          return colorScale(d.data.label + 1);
+          return colorScale(d.data.label);
       })
      .append("title")
      .text(function(d) {

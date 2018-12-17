@@ -44,7 +44,7 @@ function main(episodes) {
     let dimensions = {w: w, h: h, margins: margins, width: width,
                       height: height, radius: radius};
 
-    // define color scale for sunburst diagram and donut chart
+    // define colofr scale for sunburst diagram and donut chart
     let colorScaleSun = d3.scaleOrdinal()
                           .domain(function() {
                                let dom = [];
@@ -70,7 +70,7 @@ function main(episodes) {
                                     d3.rgb("#0F3C6B").brighter(1)]);
 
     // add divisions for the sunbust diagram and donut chart
-    let container = d3.select("body")
+    let container = d3.select("#charts")
                       .append("div")
                       .attr("class", "container")
                       .attr("width", w * 2);
@@ -117,6 +117,7 @@ function donut(data, div, dims, colorScale) {
                    .attr("transform", "translate(" + dims.w / 2 + ","
                                                    + dims.h / 2 + ")");
 
+    // add subtitle division, to display nr of characters in, on mouse over arc
     let subtitle = svg.append("g")
                       .attr("id", "charNr")
                       .attr("width", dims.w)
@@ -428,6 +429,9 @@ function sunburst(data, div, dims, colorScale, colorScaleDonut) {
     // add title to chart
     addChartTitle(svg, dims, "Star Trek Series, Seasons, and Episodes");
 
+    // add legend to chart
+    legend(data, svg, dims, colorScale);
+
 
     /**
      * Zooms in/out on doubleclicked arc.
@@ -454,6 +458,80 @@ function sunburst(data, div, dims, colorScale, colorScaleDonut) {
               };
           });
     }
+}
+
+
+/**
+ * Adds a legend to the given svg element.
+ */
+function legend(data, svg, dims, colorScale) {
+    // define legend dimensions
+    let w = dims.width * 0.1;
+    let h = dims.height * 0.15;
+    let r = w * 0.1;
+    let legMargins = {top: 20, bottom: 20, left: 20, right: 20},
+        legWidth = w - legMargins.left - legMargins.right,
+        legHeight = h - legMargins.top - legMargins.bottom;
+
+    // get list of Star Trek series
+    let series = [];
+    data["values"].forEach(function(d) {
+        series.push(d["name"].slice(10));
+    })
+
+    // add legend to svg
+    let legend = svg.append("g")
+                    .attr("width", w)
+                    .attr("height", h)
+                    .attr("class", "legend")
+                    .attr("transform", "translate(0," + (dims.margins.top
+                                                      + dims.height
+                                                      - h * 1.5)
+                                                      + ")");
+
+    // draw rectangle around legend
+    legend.append("rect")
+          .attr("width", w)
+          .attr("height", h)
+          .style("stroke-width", 1)
+          .style("stroke", "#EAEAEA")
+          .style("fill", "none");
+
+    // add country data to legend
+    legend.selectAll("g")
+          .data(series)
+          .enter()
+          .append('g')
+          .each(function(d, i) {
+              let g = d3.select(this);
+
+              // add circles in the color representing the country
+              g.append("circle")
+               .attr("class", "legendCirc")
+               .attr("cx", legMargins.left)
+               .attr("cy", function(d) {
+                    return i * h / (series.length + 1);
+                })
+               .attr("r", r)
+               .style("fill", function(d) {
+                     // skip first color in scale
+                     if (d === series[0]) {
+                         colorScale(d);
+                         return colorScale(d + 1);
+                     }
+                     return colorScale(d);
+                });
+
+              // add the country in text
+              g.append("text")
+               .attr("x", legMargins.left + 20)
+               .attr("y", function(d) {
+                   return i * h / (series.length + 1);
+                })
+               .text(function (d) {
+                    return d;
+                });
+          });
 }
 
 

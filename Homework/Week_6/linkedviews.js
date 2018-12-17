@@ -16,7 +16,6 @@
  */
 window.onload = function() {
     // load in JSON data file
-    console.log("--> BETTER WAY TO DO THIS? JQUERY?");
     Promise.resolve(d3.json("startrek.json"))
            .then(function(data) {
                 main(data);
@@ -36,8 +35,9 @@ function main(episodes) {
 
     // define svg dimensions
     let w = (window.innerWidth * 0.95) / 2;
-    let h = w;
-    let margins = {top: 30, bottom: 30, left: 30, right: 30},
+    let h = w * 1.15;
+    let margins = {top: 0.1 * w, bottom: 0.05 * h,
+                   left: 0.05 * w, right: 0.05 * w},
         width = (w - margins.left - margins.right),
         height = (h - margins.top - margins.bottom),
         radius = Math.min(width, height) / 2;
@@ -92,7 +92,7 @@ function main(episodes) {
 
 
 /**
- * Makes a donut chart of given data.
+ * Makes a donut chart of given character gender ratio data.
  */
 function donut(data, div, dims, colorScale) {
     // add SVG element and g element to division for making donut chart
@@ -108,21 +108,30 @@ function donut(data, div, dims, colorScale) {
                .attr("transform", "translate(" + dims.w / 2 + ","
                                                + dims.h / 2 + ")");
 
+    // add title (series/season/episode of which data is shown) in middle chart
     let title = svg.append("g")
                    .attr("id", "donutTitle")
+                   .attr("class", "donutTitle")
                    .attr("width", dims.w)
-                   .attr("height", dims.h)
+                   .attr("height", dims.h / 3)
                    .attr("transform", "translate(" + dims.w / 2 + ","
                                                    + dims.h / 2 + ")");
 
-    updateDonutData(data, dims, colorScale);
-}
+    let subtitle = svg.append("g")
+                      .attr("id", "charNr")
+                      .attr("width", dims.w)
+                      .attr("height", dims.h / 3)
+                      .attr("transform", "translate(" + dims.w / 2 + ","
+                                                      + dims.h / 1.5 + ")");
 
+   // add tooltip division to chart
+   let tip = d3.select("body")
+               .append("div")
+               .attr("class", "tooltip")
+               .attr("width", dims.width * 0.05)
+               .attr("height", dims.height * 0.01)
+               .style("opacity", 0);
 
-/**
- *
- */
-function updateDonutData(data, dims, colorScale) {
     // get character gender ratio data of all series
     let genders = findGenderRatio(data);
 
@@ -141,21 +150,6 @@ function updateDonutData(data, dims, colorScale) {
 
     let arcs = pie(genders);
 
-    // add arc transitions
-    d3.select("#donut")
-      .selectAll("path")
-      .data(arcs)
-      .transition()
-      .duration(750)
-      .attrTween("d", function(d) {
-          // this._current = this._current || d;
-          let interpol = d3.interpolate(this._current, d);
-          this._current = interpol(0);
-          return function(t) {
-              return arc(interpol(t));
-          };
-      });
-
     // add arcs to SVG
     d3.select("#donut")
       .selectAll("path")
@@ -166,24 +160,43 @@ function updateDonutData(data, dims, colorScale) {
       .attr("fill", function(d) {
            return colorScale(d.data.label);
        })
-      .append("title")
-      .text(function(d) {
-           return d.data.label;
-       });
+      // .on("mouseover", function(d) {
+      //     d3.select("#charNr")
+      //       .selectAll("text");
+      //     // if (charNr)
+      //     console.log(charNr);
+      //     console.log(typeof(charNr));
+      //
+      // })
+      // .on("click", function(d) {
+      //      console.log(`${d.value} ${d.data.label} characters`);
+      //  })
+      .on("mouseover", function(d, i) {
+           // lighten arc
+           d3.select(this)
+             .style("fill", function(d) {
+                  return d3.rgb(colorScale(d.data.label)).brighter(1);
+              });
 
-    // add label transitions
-    d3.select("#donut")
-      .selectAll("text")
-      .data(arcs)
-      .transition()
-      .duration(750)
-      .attrTween("transform", function(d) {
-           // this._current = this._current || d;
-           let interpol = d3.interpolate(this._current, d);
-           this._current = interpol(0);
-           return function(t) {
-               return "translate(" + arc.centroid(interpol(t)) + ")";
-           };
+           // show tooltip, telling number of characters with gender of arc
+           tip.transition()
+              .duration(200)
+              .style("opacity", .9);
+           tip.text(`${d.value} ${d.data.label} characters`)
+              .style("left", d3.event.pageX + "px")
+              .style("top", d3.event.pageY + "px")
+              .style("fill", colorScale(d.data.label))
+              .style("font-size", `${dims.width * 0.05}px`);
+       })
+      .on("mouseout", function(d) {
+           d3.select(this)
+             .style("fill", function(d) {
+                  return colorScale(d.data.label);
+              });
+
+           tip.transition()
+              .duration(500)
+              .style("opacity", 0);
        });
 
     // add labels to arcs, only visible if arc itself is visible (has value > 0)
@@ -206,27 +219,86 @@ function updateDonutData(data, dims, colorScale) {
       .style("fill", "#EAEAEA")
       .style("font-size", `${dims.width * 0.06}px`);
 
-    // add title transitions
+    // add title displaying series/season/episode of which gender data is shown
     d3.select("#donutTitle")
+      .append("text")
+      .attr("id", "tekstInDonut")
+      .attr("text-anchor", "middle")
+      .attr("y", dims.width * 0.08 / 4)
+      .style("fill", "#EAEAEA")
+      .style("font-size",
+             // scale fontsize to fit inside donut
+             `${dims.width * 1 / (data.name.length)}px`)
+      .text(data.name);
+
+    // add title to chart
+    addChartTitle(svg, dims, "Character Gender Ratio");
+}
+
+
+/**
+ * Updates donut chart with given gender ratio dat, via transitions.
+ */
+function updateDonut(data, dims) {
+    // get character gender ratio data of all series
+    let genders = findGenderRatio(data);
+
+    // define pie division
+    let pie = d3.pie(genders)
+                .padAngle(0.005)
+                .sort(null)
+                .value(function(d) {
+                     return d["value"];
+                 });
+
+    // define arcs
+    let arc = d3.arc()
+                .innerRadius(dims.radius * 0.7)
+                .outerRadius(dims.radius);
+
+    let arcs = pie(genders);
+
+    // define arc transitions
+    d3.select("#donut")
+      .selectAll("path")
+      .data(arcs)
+      .transition()
+      .duration(750)
+      .attrTween("d", function(d) {
+          let interpol = d3.interpolate(this._current, d);
+          this._current = interpol(0);
+          return function(t) {
+              return arc(interpol(t));
+          };
+      });
+
+    // define label transitions
+    d3.select("#donut")
       .selectAll("text")
-      .data(data)
+      .data(arcs)
+      .transition()
+      .duration(750)
+      .attrTween("transform", function(d) {
+           let interpol = d3.interpolate(this._current, d);
+           this._current = interpol(0);
+           return function(t) {
+               return "translate(" + arc.centroid(interpol(t)) + ")";
+           };
+       })
+      .attr("display", function(d) {
+           return (d.value !== 0) ? null : "none";
+       });
+
+    // define title transitions, scaling font size to fit inside donut
+    d3.select("donutTitle")
+      .selectAll("text")
       .transition()
       .duration(750)
       .style("opacity", 0)
       .transition()
       .duration(750)
       .style("opacity", 1)
-      .text(function(d) {
-          return d.name;
-       });
-
-    // add title displaying series/season/episode of which gender data is shown
-    d3.select("#donutTitle")
-      .append("text")
-      .attr("text-anchor", "middle")
-      .attr("y", dims.width * 0.08 / 4)
-      .style("fill", "#EAEAEA")
-      .style("font-size", `${dims.width * 0.08}px`)
+      .style("font-size", `${dims.width * 1.3 / (data.name.length)}px`)
       .text(data.name);
 }
 
@@ -351,8 +423,7 @@ function sunburst(data, div, dims, colorScale, colorScaleDonut) {
       })
      .on("click", function(d) {
          // update gender data in donut chart
-         updateDonut(d);
-         updateDonutData(d.data, dims, colorScaleDonut);
+         updateDonut(d.data, dims);
       })
      .on("dblclick", function(d) {
           // zoom in (or out) on doubleclicked arc
@@ -362,6 +433,10 @@ function sunburst(data, div, dims, colorScale, colorScaleDonut) {
      .text(function(d) {
           return d.data.name;
       });;
+
+    // add title to chart
+    addChartTitle(svg, dims, "Star Trek Series, Seasons, and Episodes");
+
 
     /**
      * Zooms in/out on doubleclicked arc.
@@ -447,12 +522,19 @@ function makeHierarchical(episodes) {
 
 
 /**
- *
+ * Creates a title above an svg element.
  */
-function updateDonut(d) {
-    let genders = findGenderRatio(d.data);
-    console.log(genders);
-    console.log(d.data.name);
-
-
+function addChartTitle(svg, dims, title) {
+    svg.append("text")
+       .attr("class", "chartTitle")
+       .attr("x", (dims.width + dims.margins.left + dims.margins.right) / 2)
+       .attr("y", dims.margins.top / 1.5)
+       .style("text-anchor", "middle")
+       .style("fill", "#8E8E8E")
+       .style("font-size", `${dims.width * 0.06}px`)
+       .text(title);
 }
+
+//// TODO:
+// Legenda
+// Tooltips

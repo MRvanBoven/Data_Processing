@@ -124,14 +124,6 @@ function donut(data, div, dims, colorScale) {
                       .attr("transform", "translate(" + dims.w / 2 + ","
                                                       + dims.h / 1.5 + ")");
 
-   // add tooltip division to chart
-   let tip = d3.select("body")
-               .append("div")
-               .attr("class", "tooltip")
-               .attr("width", dims.width * 0.05)
-               .attr("height", dims.height * 0.01)
-               .style("opacity", 0);
-
     // get character gender ratio data of all series
     let genders = findGenderRatio(data);
 
@@ -160,44 +152,43 @@ function donut(data, div, dims, colorScale) {
       .attr("fill", function(d) {
            return colorScale(d.data.label);
        })
-      // .on("mouseover", function(d) {
-      //     d3.select("#charNr")
-      //       .selectAll("text");
-      //     // if (charNr)
-      //     console.log(charNr);
-      //     console.log(typeof(charNr));
-      //
-      // })
-      // .on("click", function(d) {
-      //      console.log(`${d.value} ${d.data.label} characters`);
-      //  })
-      .on("mouseover", function(d, i) {
-           // lighten arc
-           d3.select(this)
-             .style("fill", function(d) {
-                  return d3.rgb(colorScale(d.data.label)).brighter(1);
-              });
+      .on("mouseover", function(d) {
+          d3.select("#charNr")
+            .selectAll("text");
+          // if (charNr)
+          console.log(charNr);
+          console.log(typeof(charNr));
 
-           // show tooltip, telling number of characters with gender of arc
-           tip.transition()
-              .duration(200)
-              .style("opacity", .9);
-           tip.text(`${d.value} ${d.data.label} characters`)
-              .style("left", d3.event.pageX + "px")
-              .style("top", d3.event.pageY + "px")
-              .style("fill", colorScale(d.data.label))
-              .style("font-size", `${dims.width * 0.05}px`);
+      })
+      .on("mouseover", function(d) {
+          // lighten arc
+          d3.select(this)
+            .style("fill", function(d) {
+                 return d3.rgb(colorScale(d.data.label)).brighter(1);
+             });
+
+          // define title transitions, scaling font size to fit inside donut
+          subtitle.transition()
+                  .duration(400)
+                  .style("opacity", 1);
+          subtitle.append("text")
+                  .text(`${d.value} ${d.data.label} characters`)
+                  .attr("text-anchor", "middle")
+                  .style("fill", d3.rgb(colorScale(d.data.label)).brighter(1))
+                  .style("font-size", `${dims.width * 0.05}px`);
        })
       .on("mouseout", function(d) {
-           d3.select(this)
-             .style("fill", function(d) {
-                  return colorScale(d.data.label);
-              });
+          d3.select(this)
+                 .style("fill", function(d) {
+                      return colorScale(d.data.label);
+                  });
 
-           tip.transition()
-              .duration(500)
-              .style("opacity", 0);
-       });
+          subtitle.transition()
+                  .duration(400)
+                  .style("opacity", 0)
+                  .selectAll("text")
+                  .remove();
+      });
 
     // add labels to arcs, only visible if arc itself is visible (has value > 0)
     d3.select("#donut")
@@ -290,7 +281,7 @@ function updateDonut(data, dims) {
        });
 
     // define title transitions, scaling font size to fit inside donut
-    d3.select("donutTitle")
+    d3.select("#donutTitle")
       .selectAll("text")
       .transition()
       .duration(750)

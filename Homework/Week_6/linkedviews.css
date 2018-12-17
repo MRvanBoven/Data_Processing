@@ -37,8 +37,7 @@
 
 
 /* define chart title style */
-.chart.title {
-    font-size: 16px;
+.chartTitle {
     font-weight: bold;
 }
 
@@ -47,6 +46,22 @@
 .legend {
     font-size: 12px;
     font-variant: small-caps;
+}
+
+
+/* define tooltip style */
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    /* width: 50px;
+    height: 14px; */
+    padding: 2px;
+    font-family: 'Abel';
+    /* font: 12px sans-serif; */
+    background: #EAEAEA;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
 }
 
 

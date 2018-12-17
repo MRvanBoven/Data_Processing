@@ -108,6 +108,13 @@ function donut(data, div, dims, colorScale) {
                .attr("transform", "translate(" + dims.w / 2 + ","
                                                + dims.h / 2 + ")");
 
+    let title = svg.append("g")
+                   .attr("id", "donutTitle")
+                   .attr("width", dims.w)
+                   .attr("height", dims.h)
+                   .attr("transform", "translate(" + dims.w / 2 + ","
+                                                   + dims.h / 2 + ")");
+
     updateDonutData(data, dims, colorScale);
 }
 
@@ -139,7 +146,9 @@ function updateDonutData(data, dims, colorScale) {
       .selectAll("path")
       .data(arcs)
       .transition()
+      .duration(750)
       .attrTween("d", function(d) {
+          // this._current = this._current || d;
           let interpol = d3.interpolate(this._current, d);
           this._current = interpol(0);
           return function(t) {
@@ -162,11 +171,20 @@ function updateDonutData(data, dims, colorScale) {
            return d.data.label;
        });
 
-    // add text transitions
+    // add label transitions
     d3.select("#donut")
       .selectAll("text")
       .data(arcs)
-      .transition();
+      .transition()
+      .duration(750)
+      .attrTween("transform", function(d) {
+           // this._current = this._current || d;
+           let interpol = d3.interpolate(this._current, d);
+           this._current = interpol(0);
+           return function(t) {
+               return "translate(" + arc.centroid(interpol(t)) + ")";
+           };
+       });
 
     // add labels to arcs, only visible if arc itself is visible (has value > 0)
     d3.select("#donut")
@@ -179,22 +197,36 @@ function updateDonutData(data, dims, colorScale) {
            return (d.value !== 0) ? null : "none";
        })
       .attr("text-anchor", "middle")
+      .attr("transform", function(d) {
+          return "translate(" + arc.centroid(d) + ")";
+       })
+      .text(function(d) {
+          return d.data.label;
+       })
       .style("fill", "#EAEAEA")
-      .style("font-size", `${dims.width * 0.06}px`)
-      .each(function(d) {
-           d3.select(this)
-             .attr("x", arc.centroid(d)[0])
-             .attr("y", arc.centroid(d)[1])
-             .attr("dy", `${dims.width * 0.06 / 4}px`)
-             .text(d.data.label);
+      .style("font-size", `${dims.width * 0.06}px`);
+
+    // add title transitions
+    d3.select("#donutTitle")
+      .selectAll("text")
+      .data(data)
+      .transition()
+      .duration(750)
+      .style("opacity", 0)
+      .transition()
+      .duration(750)
+      .style("opacity", 1)
+      .text(function(d) {
+          return d.name;
        });
 
-    d3.select("#donut")
+    // add title displaying series/season/episode of which gender data is shown
+    d3.select("#donutTitle")
       .append("text")
       .attr("text-anchor", "middle")
       .attr("y", dims.width * 0.08 / 4)
       .style("fill", "#EAEAEA")
-      .style("font-size", `${dims.width * 1.5 / data.key.length}px`)
+      .style("font-size", `${dims.width * 0.08}px`)
       .text(data.name);
 }
 

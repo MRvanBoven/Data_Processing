@@ -36,13 +36,28 @@
 }
 
 
-/* define chart title style */
+/* define chart related styles */
+.chartsDiv {
+    position: relative;
+    top: 30px;
+}
+.container1 {
+    position: relative;
+    float: left;
+}
+.container2 {
+    position: relative;
+    float: left;
+}
+
+.label {
+    font-variant: small-caps;
+}
+
 .chartTitle {
     font-weight: bold;
 }
 
-
-/* define legend style */
 .legend {
     font-size: 12px;
     font-variant: small-caps;
@@ -68,16 +83,7 @@ p.student {
     font-variant: small-caps;
     font-weight: bold;
 }
-
-.container1 {
+p.conclusion {
     position: relative;
     float: left;
-}
-.container2 {
-    position: relative;
-    float: left;
-}
-
-.label {
-    font-variant: small-caps;
 }

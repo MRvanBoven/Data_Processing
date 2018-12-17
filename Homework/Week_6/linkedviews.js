@@ -92,6 +92,126 @@ function main(episodes) {
 
 
 /**
+ * Makes a sunburst diagram of given data set.
+ * Made with help from the tutorial and example found on
+ * https://bl.ocks.org/denjn5/e1cdbbe586ac31747b4a304f8f86efa5 and
+ * https://bl.ocks.org/maybelinot/5552606564ef37b5de7e47ed2b7dc099.
+ */
+function sunburst(data, div, dims, colorScale, colorScaleDonut) {
+    // add SVG element and g element to division for making sunbust
+    let svg = div.append("svg")
+                 .attr("width", dims.w)
+                 .attr("height", dims.h);
+
+    let g = svg.append("g")
+               .attr("width", dims.w)
+               .attr("height", dims.h)
+               .attr("transform", "translate(" + dims.w / 2 + ","
+                                               + dims.h / 2 + ")");
+
+    // define x and y scalers for zooming on sunburst
+    let scaleX = d3.scaleLinear()
+                   .range([0, 2 * Math.PI]);
+    let scaleY = d3.scaleSqrt()
+                   .range([0, dims.radius]);
+
+    // set partition for the sunburst diagram
+    let partition = d3.partition();
+
+    // define arc angle + width
+    let arc = d3.arc()
+                .startAngle(function(d) {
+                    return Math.max(0, Math.min(2 * Math.PI, scaleX(d.x0)));
+                 })
+                .endAngle(function(d) {
+                    return Math.max(0, Math.min(2 * Math.PI, scaleX(d.x1)));
+                 })
+                .innerRadius(function(d) {
+                    return Math.max(0, scaleY(d.y0));
+                 })
+                .outerRadius(function(d) {
+                    return Math.max(0, scaleY(d.y1));
+                 });
+
+    // find root node (letting hierarchy know which values to use)
+    let root = d3.hierarchy(data, function children(d) {
+                      return d["values"];
+                  })
+                 .sum(function(d) {
+                     return d["value"];
+                  });
+
+    // add arcs to SVG
+    g.selectAll("path")
+     .data(partition(root).descendants())
+     .enter()
+     .append("path")
+     .attr("d", arc)
+     .style("stroke", "#232323")
+     .style("fill", function(d) {
+         // give arcs same tone as 1st parent
+         let original = d;
+         while (d.depth > 1) {
+             d = d.parent;
+         }
+
+         // lighter colors further from root, root & depth 1 keep original color
+         if (original.depth === 0) {
+             return d3.rgb(colorScale(d.data.key))
+                      .brighter(original.depth);
+         }
+         return d3.rgb(colorScale(d.data.key))
+                  .brighter(original.depth - 1);
+      })
+     .on("click", function(d) {
+         // update gender data in donut chart
+         updateDonut(d.data, dims);
+      })
+     .on("dblclick", function(d) {
+          // zoom in (or out) on doubleclicked arc
+          zoom(d);
+      })
+     .append("title")
+     .text(function(d) {
+          return d.data.name;
+      });;
+
+    // add title to chart
+    addChartTitle(svg, dims, "Star Trek Series, Seasons, and Episodes");
+
+    // add legend to chart
+    legend(data, svg, dims, colorScale);
+
+
+    /**
+     * Zooms in/out on doubleclicked arc.
+     */
+    function zoom(d) {
+        g.transition()
+         .duration(750)
+         .tween("scale", function() {
+              // scale arc dimensions
+              let xd = d3.interpolate(scaleX.domain(), [d.x0, d.x1]),
+                  yd = d3.interpolate(scaleY.domain(), [d.y0, 1]);
+                  yr = d3.interpolate(scaleY.range(),
+                                      [d.y0 ? 0.2 * dims.radius
+                                            : 0, dims.radius]);
+              return function(t) {
+                  scaleX.domain(xd(t));
+                  scaleY.domain(yd(t)).range(yr(t));
+              };
+          })
+         .selectAll("path")
+         .attrTween("d", function(d) {
+              return function() {
+                  return arc(d);
+              };
+          });
+    }
+}
+
+
+/**
  * Makes a donut chart of given character gender ratio data.
  */
 function donut(data, div, dims, colorScale) {
@@ -153,14 +273,6 @@ function donut(data, div, dims, colorScale) {
       .attr("fill", function(d) {
            return colorScale(d.data.label);
        })
-      .on("mouseover", function(d) {
-          d3.select("#charNr")
-            .selectAll("text");
-          // if (charNr)
-          console.log(charNr);
-          console.log(typeof(charNr));
-
-      })
       .on("mouseover", function(d) {
           // lighten arc
           d3.select(this)
@@ -295,6 +407,20 @@ function updateDonut(data, dims) {
 }
 
 
+/**
+ * Creates a title above an svg element.
+ */
+function addChartTitle(svg, dims, title) {
+    svg.append("text")
+       .attr("class", "chartTitle")
+       .attr("x", (dims.width + dims.margins.left + dims.margins.right) / 2)
+       .attr("y", dims.margins.top / 1.5)
+       .style("text-anchor", "middle")
+       .style("fill", "#8E8E8E")
+       .style("font-size", `${dims.width * 0.06}px`)
+       .text(title);
+}
+
 
 /**
  * Finds gender ratio of all characters appearing in given (clicked) series,
@@ -342,134 +468,16 @@ function findGenderRatio(d) {
 
 
 /**
- * Makes a sunburst diagram of given data set.
- * Made with help from the tutorial and example found on
- * https://bl.ocks.org/denjn5/e1cdbbe586ac31747b4a304f8f86efa5 and
- * https://bl.ocks.org/maybelinot/5552606564ef37b5de7e47ed2b7dc099.
- */
-function sunburst(data, div, dims, colorScale, colorScaleDonut) {
-    // add SVG element and g element to division for making sunbust
-    let svg = div.append("svg")
-                 .attr("width", dims.w)
-                 .attr("height", dims.h);
-
-    let g = svg.append("g")
-               .attr("width", dims.w)
-               .attr("height", dims.h)
-               .attr("transform", "translate(" + dims.w / 2 + ","
-                                               + dims.h / 2 + ")");
-
-    // define x and y scalers for zooming on sunburst
-    let scaleX = d3.scaleLinear()
-                   .range([0, 2 * Math.PI]);
-    let scaleY = d3.scaleSqrt()
-                   .range([0, dims.radius]);
-
-    // set partition for the sunburst diagram
-    let partition = d3.partition();
-
-    // define arc angle + width
-    let arc = d3.arc()
-                .startAngle(function(d) {
-                    return Math.max(0, Math.min(2 * Math.PI, scaleX(d.x0)));
-                 })
-                .endAngle(function(d) {
-                    return Math.max(0, Math.min(2 * Math.PI, scaleX(d.x1)));
-                 })
-                .innerRadius(function(d) {
-                    return Math.max(0, scaleY(d.y0));
-                 })
-                .outerRadius(function(d) {
-                    return Math.max(0, scaleY(d.y1));
-                 });
-
-    // find root node (letting hierarchy know which values to use)
-    let root = d3.hierarchy(data, function children(d) {
-                      return d["values"];
-                  })
-                 .sum(function(d) {
-                     return d["value"];
-                  });
-
-    // add arcs to SVG
-    g.selectAll("path")
-     .data(partition(root).descendants())
-     .enter()
-     .append("path")
-     .attr("d", arc)
-     .style("stroke", "#232323")
-     .style("fill", function(d) {
-         // give arcs same tone as 1st parent
-         let original = d;
-         while (d.depth > 1) {
-             d = d.parent;
-         }
-
-         // lighter colors further from root, root & depth 1 keep original color
-         if (original.depth === 0) {
-             return d3.rgb(colorScale(d.data.key))
-                      .brighter(original.depth);
-         }
-         return d3.rgb(colorScale(d.data.key))
-                  .brighter(original.depth - 1);
-      })
-     .on("click", function(d) {
-         // update gender data in donut chart
-         updateDonut(d.data, dims);
-      })
-     .on("dblclick", function(d) {
-          // zoom in (or out) on doubleclicked arc
-          zoom(d);
-      })
-     .append("title")
-     .text(function(d) {
-          return d.data.name;
-      });;
-
-    // add title to chart
-    addChartTitle(svg, dims, "Star Trek Series, Seasons, and Episodes");
-
-    // add legend to chart
-    legend(data, svg, dims, colorScale);
-
-
-    /**
-     * Zooms in/out on doubleclicked arc.
-     */
-    function zoom(d) {
-        g.transition()
-         .duration(750)
-         .tween("scale", function() {
-              // scale arc dimensions
-              let xd = d3.interpolate(scaleX.domain(), [d.x0, d.x1]),
-                  yd = d3.interpolate(scaleY.domain(), [d.y0, 1]);
-                  yr = d3.interpolate(scaleY.range(),
-                                      [d.y0 ? 0.2 * dims.radius
-                                            : 0, dims.radius]);
-              return function(t) {
-                  scaleX.domain(xd(t));
-                  scaleY.domain(yd(t)).range(yr(t));
-              };
-          })
-         .selectAll("path")
-         .attrTween("d", function(d) {
-              return function() {
-                  return arc(d);
-              };
-          });
-    }
-}
-
-
-/**
  * Adds a legend to the given svg element.
  */
 function legend(data, svg, dims, colorScale) {
     // define legend dimensions
-    let w = dims.width * 0.1;
-    let h = dims.height * 0.15;
-    let r = w * 0.1;
-    let legMargins = {top: 20, bottom: 20, left: 20, right: 20},
+    let w = dims.width * 0.18;
+    let h = dims.height * 0.16;
+    let r = w * 0.05;
+    let legMargins = {top: h * 0.1, bottom: h * 0.1,
+                      left: w * 0.1, right: w * 0.1,
+                      text: w * 0.12},
         legWidth = w - legMargins.left - legMargins.right,
         legHeight = h - legMargins.top - legMargins.bottom;
 
@@ -479,14 +487,18 @@ function legend(data, svg, dims, colorScale) {
         series.push(d["name"].slice(10));
     })
 
+    // find longest series title to determine font size with
+    let copy = series.slice();
+    let fontSizeLength = copy.sort(function(a,b) {
+                                  return b.length - a.length;
+                              })[0].length;
+
     // add legend to svg
     let legend = svg.append("g")
                     .attr("width", w)
                     .attr("height", h)
                     .attr("class", "legend")
-                    .attr("transform", "translate(0," + (dims.margins.top
-                                                      + dims.height
-                                                      - h * 1.5)
+                    .attr("transform", "translate(0," + dims.margins.top
                                                       + ")");
 
     // draw rectangle around legend
@@ -494,10 +506,10 @@ function legend(data, svg, dims, colorScale) {
           .attr("width", w)
           .attr("height", h)
           .style("stroke-width", 1)
-          .style("stroke", "#EAEAEA")
+          .style("stroke", "#8E8E8E")
           .style("fill", "none");
 
-    // add country data to legend
+    // add series data to legend
     legend.selectAll("g")
           .data(series)
           .enter()
@@ -505,12 +517,12 @@ function legend(data, svg, dims, colorScale) {
           .each(function(d, i) {
               let g = d3.select(this);
 
-              // add circles in the color representing the country
+              // add circles in the color representing the series
               g.append("circle")
                .attr("class", "legendCirc")
                .attr("cx", legMargins.left)
                .attr("cy", function(d) {
-                    return i * h / (series.length + 1);
+                    return legMargins.top + i * legHeight / (series.length - 1);
                 })
                .attr("r", r)
                .style("fill", function(d) {
@@ -524,13 +536,17 @@ function legend(data, svg, dims, colorScale) {
 
               // add the country in text
               g.append("text")
-               .attr("x", legMargins.left + 20)
+               .attr("x", legMargins.left * 2)
                .attr("y", function(d) {
-                   return i * h / (series.length + 1);
+                   return legMargins.text + i * legHeight / (series.length - 1);
                 })
                .text(function (d) {
                     return d;
-                });
+                })
+               .style("fill", "#EAEAEA")
+               .style("font-size",
+                      // scale fontsize to fit inside legend box
+                      `${legWidth * 2.5 / fontSizeLength}px`)
           });
 }
 
@@ -588,22 +604,3 @@ function makeHierarchical(episodes) {
 
     return hierarchy;
 }
-
-
-/**
- * Creates a title above an svg element.
- */
-function addChartTitle(svg, dims, title) {
-    svg.append("text")
-       .attr("class", "chartTitle")
-       .attr("x", (dims.width + dims.margins.left + dims.margins.right) / 2)
-       .attr("y", dims.margins.top / 1.5)
-       .style("text-anchor", "middle")
-       .style("fill", "#8E8E8E")
-       .style("font-size", `${dims.width * 0.06}px`)
-       .text(title);
-}
-
-//// TODO:
-// Legenda
-// Tooltips
